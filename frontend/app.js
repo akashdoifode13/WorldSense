@@ -1640,21 +1640,30 @@ async function fetchAPI(endpoint, options) {
             const path = urlObj.pathname;
             const params = new URLSearchParams(urlObj.search);
 
-            // 1. Last Run Date
-            if (path.includes('/api/last-run-date')) {
+            // 1. Consolidated Country Data (Last Run, Dates, Overview)
+            if (path.includes('/api/last-run-date') || path.includes('/api/dates') || path.includes('/api/country-overview')) {
                 const country = params.get('country') || 'Global';
-                url = `./api/last-run-date/${country.replace(/ /g, '_')}.json`;
+                const consolidatedUrl = `./api/countries/${country.replace(/ /g, '_')}.json`;
+
+                // Fetch the consolidated file
+                return fetch(consolidatedUrl).then(async (res) => {
+                    if (!res.ok) return res;
+                    const data = await res.json();
+
+                    // Extract the relevant part based on the requested path
+                    let result = {};
+                    if (path.includes('/api/last-run-date')) result = data.last_run || {};
+                    else if (path.includes('/api/dates')) result = data.dates || [];
+                    else if (path.includes('/api/country-overview')) result = data.overview || {};
+
+                    // Return a mocked Response object with the extracted data
+                    return new Response(JSON.stringify(result), {
+                        status: 200,
+                        headers: { 'Content-Type': 'application/json' }
+                    });
+                });
             }
-            // 2. Dates List
-            else if (path.includes('/api/dates')) {
-                const country = params.get('country') || 'Global';
-                url = `./api/dates/${country.replace(/ /g, '_')}.json`;
-            }
-            // 3. Country Overview (Latest)
-            else if (path.includes('/api/country-overview')) {
-                const country = params.get('country') || 'Global';
-                url = `./api/overview/${country.replace(/ /g, '_')}.json`;
-            }
+
             // 4. Summary (Specific Date)
             else if (path.includes('/api/summary')) {
                 // /api/summary/2025-11-01
@@ -1671,7 +1680,7 @@ async function fetchAPI(endpoint, options) {
             }
             // 6. Country Sentiments (Map)
             else if (path.includes('/api/country-sentiments')) {
-                url = `./api/country-sentiments.json`;
+                url = `./api/world/sentiments.json`;
             }
 
             console.log(`[Static] Mapping ${relativeEndpoint} -> ${url}`);

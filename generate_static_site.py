@@ -77,35 +77,36 @@ def generate_static_site():
         safe_country = urllib.parse.quote(country)
         country_slug = country.replace(" ", "_")
         
+        
+        # Consolidate Country Metadata into one file
+        # Static: api/countries/{country_slug}.json
+        # Structure: { last_run: ..., dates: [...], overview: ... }
+        
+        country_data = {}
+        
         # A. Last Run Date
-        # API: /api/last-run-date?country=Global
-        # Static: api/last-run-date/{country_slug}.json
-        fetch_and_save(
-            f"/api/last-run-date?country={safe_country}", 
-            os.path.join(OUTPUT_DIR, "api", "last-run-date", f"{country_slug}.json")
-        )
-        
+        resp_last_run = requests.get(f"{API_URL}/api/last-run-date?country={safe_country}")
+        if resp_last_run.status_code == 200:
+            country_data['last_run'] = resp_last_run.json()
+            
         # B. Available Dates
-        # API: /api/dates?country=Global
-        # Static: api/dates/{country_slug}.json
-        fetch_and_save(
-            f"/api/dates?country={safe_country}", 
-            os.path.join(OUTPUT_DIR, "api", "dates", f"{country_slug}.json")
-        )
-        
+        resp_dates = requests.get(f"{API_URL}/api/dates?country={safe_country}")
+        if resp_dates.status_code == 200:
+            country_data['dates'] = resp_dates.json()
+            
         # C. Country Overview (Latest)
-        # API: /api/country-overview?country=Global
-        # Static: api/overview/{country_slug}.json
-        fetch_and_save(
-            f"/api/country-overview?country={safe_country}", 
-            os.path.join(OUTPUT_DIR, "api", "overview", f"{country_slug}.json")
-        )
+        resp_overview = requests.get(f"{API_URL}/api/country-overview?country={safe_country}")
+        if resp_overview.status_code == 200:
+            country_data['overview'] = resp_overview.json()
+            
+        # Save consolidated country file
+        ensure_dir(os.path.join(OUTPUT_DIR, "api", "countries"))
+        with open(os.path.join(OUTPUT_DIR, "api", "countries", f"{country_slug}.json"), 'w', encoding='utf-8') as f:
+            json.dump(country_data, f, indent=2, ensure_ascii=False)
         
-        # D. Fetch data for ALL available dates
-        # First we need to know the dates. We just fetched them, let's read the saved file or fetch again.
-        dates_resp = requests.get(f"{API_URL}/api/dates?country={safe_country}")
-        if dates_resp.status_code == 200:
-            dates = dates_resp.json()
+        # D. Fetch data for ALL available dates (Detailed views)
+        if 'dates' in country_data:
+            dates = country_data['dates']
             for d in dates:
                 date_str = d['date']
                 
@@ -127,8 +128,9 @@ def generate_static_site():
 
     # 4. Generate Country Sentiments for Map
     # API: /api/country-sentiments
-    # Static: api/country-sentiments.json
-    fetch_and_save("/api/country-sentiments", os.path.join(OUTPUT_DIR, "api", "country-sentiments.json"))
+    # Static: api/world/sentiments.json
+    ensure_dir(os.path.join(OUTPUT_DIR, "api", "world"))
+    fetch_and_save("/api/country-sentiments", os.path.join(OUTPUT_DIR, "api", "world", "sentiments.json"))
 
     print("\n✨ Static site generation complete!")
     print(f"📂 Output directory: {os.path.abspath(OUTPUT_DIR)}")
