@@ -1,0 +1,48 @@
+# Docker specific ignores
+venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+.venv/
+pip-log.txt
+pip-delete-this-directory.txt
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Git
+.git/
+.gitignore
+
+# Test files
+*.test.py
+tests/
+pytest_cache/
+.coverage
+
+# Documentation
+*.md
+docs/
+
+# Development files
+*.log
+*.bak
+debug_*.py
+verify_*.py
+
+# Local env files (use docker env instead)
+.env.local
+.env.development
+
+# Data directory is mounted as volume
+# data/
