@@ -1688,3 +1688,41 @@ async function fetchAPI(endpoint, options) {
     // Pass options (method, headers, body) to fetch
     return fetch(url, options);
 }
+
+// Remove interactive buttons in Static Mode
+function cleanupUIForStaticMode() {
+    if (!STATIC_MODE) return;
+
+    console.log('[Static Mode] Cleaning up UI elements...');
+
+    // List of IDs to remove
+    const elementsToRemove = [
+        'scrapeBtn',              // Header "Refresh"
+        'regenerateSummaryBtn',   // Summary Card "Regenerate"
+        'generateSummaryBtn',     // Daily View "Generate"
+        'createSummaryBtn'        // Placeholder "Generate"
+    ];
+
+    elementsToRemove.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) {
+            el.style.display = 'none'; // Safer than remove() to avoid JS errors if referenced elsewhere
+        }
+    });
+
+    // Update Placeholder text to be static-friendly
+    const placeholder = document.getElementById('generateSummaryPlaceholder');
+    if (placeholder) {
+        const title = placeholder.querySelector('h3');
+        const desc = placeholder.querySelector('p');
+        if (title) title.textContent = "Data Not Available";
+        if (desc) desc.textContent = "No analysis was generated for this period in the demo dataset.";
+    }
+}
+
+// Call cleanup on load
+document.addEventListener('DOMContentLoaded', () => {
+    if (STATIC_MODE) {
+        cleanupUIForStaticMode();
+    }
+});
