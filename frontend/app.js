@@ -1643,17 +1643,17 @@ async function fetchAPI(endpoint, options) {
             // 1. Last Run Date
             if (path.includes('/api/last-run-date')) {
                 const country = params.get('country') || 'Global';
-                url = `api/last-run-date/${country.replace(/ /g, '_')}.json`;
+                url = `./api/last-run-date/${country.replace(/ /g, '_')}.json`;
             }
             // 2. Dates List
             else if (path.includes('/api/dates')) {
                 const country = params.get('country') || 'Global';
-                url = `api/dates/${country.replace(/ /g, '_')}.json`;
+                url = `./api/dates/${country.replace(/ /g, '_')}.json`;
             }
             // 3. Country Overview (Latest)
             else if (path.includes('/api/country-overview')) {
                 const country = params.get('country') || 'Global';
-                url = `api/overview/${country.replace(/ /g, '_')}.json`;
+                url = `./api/overview/${country.replace(/ /g, '_')}.json`;
             }
             // 4. Summary (Specific Date)
             else if (path.includes('/api/summary')) {
@@ -1661,17 +1661,17 @@ async function fetchAPI(endpoint, options) {
                 const parts = path.split('/');
                 const date = parts[parts.length - 1];
                 const country = params.get('country') || 'Global';
-                url = `api/summary/${country.replace(/ /g, '_')}/${date}.json`;
+                url = `./api/summary/${country.replace(/ /g, '_')}/${date}.json`;
             }
             // 5. Articles (Specific Date)
             else if (path.includes('/api/articles')) {
                 const country = params.get('country') || 'Global';
                 const date = params.get('date');
-                url = `api/articles/${country.replace(/ /g, '_')}/${date}.json`;
+                url = `./api/articles/${country.replace(/ /g, '_')}/${date}.json`;
             }
             // 6. Country Sentiments (Map)
             else if (path.includes('/api/country-sentiments')) {
-                url = `api/country-sentiments.json`;
+                url = `./api/country-sentiments.json`;
             }
 
             console.log(`[Static] Mapping ${relativeEndpoint} -> ${url}`);
