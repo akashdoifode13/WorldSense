@@ -50,8 +50,13 @@ def generate_static_site():
     with open(os.path.join(FRONTEND_DIR, "app.js"), 'r', encoding='utf-8') as src:
         js_content = src.read()
     
-    # Inject STATIC_MODE = true at the very top (Use var to avoid conflict with var check in app.js)
-    js_content = "var STATIC_MODE = true;\n" + js_content
+    # Replace default false with true for static mode
+    if "var STATIC_MODE = false;" in js_content:
+        js_content = js_content.replace("var STATIC_MODE = false;", "var STATIC_MODE = true;")
+    else:
+        # Fallback if not found (shouldn't happen with correct app.js)
+        print("⚠️ Warning: STATIC_MODE declaration not found in app.js, prepending...")
+        js_content = "var STATIC_MODE = true;\n" + js_content
     
     with open(os.path.join(OUTPUT_DIR, "app.js"), 'w', encoding='utf-8') as dst:
         dst.write(js_content)

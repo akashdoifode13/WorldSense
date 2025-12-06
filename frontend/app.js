@@ -1,3 +1,5 @@
+var STATIC_MODE = false; // Default to dynamic mode
+
 let currentDate = new Date();
 let selectedDate = null;
 let selectedCountry = 'Global';
@@ -1616,9 +1618,8 @@ async function regenerateSummary() {
 
 // ===== Data Handling & Static Mode Support =====
 // STATIC_MODE is auto-injected as true by generate_static_site.py
-if (typeof STATIC_MODE === 'undefined') {
-    var STATIC_MODE = false;
-}
+// ===== Data Handling & Static Mode Support =====
+// STATIC_MODE flag handled at top of file
 
 // Helper to fetch data from API (Dynamic) or JSON files (Static)
 async function fetchAPI(endpoint, options) {
