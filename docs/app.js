@@ -1,4 +1,4 @@
-const STATIC_MODE = true;
+var STATIC_MODE = true;
 let currentDate = new Date();
 let selectedDate = null;
 let selectedCountry = 'Global';

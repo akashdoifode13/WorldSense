@@ -50,8 +50,8 @@ def generate_static_site():
     with open(os.path.join(FRONTEND_DIR, "app.js"), 'r', encoding='utf-8') as src:
         js_content = src.read()
     
-    # Inject STATIC_MODE = true at the very top
-    js_content = "const STATIC_MODE = true;\n" + js_content
+    # Inject STATIC_MODE = true at the very top (Use var to avoid conflict with var check in app.js)
+    js_content = "var STATIC_MODE = true;\n" + js_content
     
     with open(os.path.join(OUTPUT_DIR, "app.js"), 'w', encoding='utf-8') as dst:
         dst.write(js_content)
