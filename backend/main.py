@@ -404,7 +404,6 @@ async def export_sentiments(format: str = "csv", country: str = None, db: Sessio
     import csv as csv_module
     from fastapi.responses import Response as FastAPIResponse
     from backend.services.sentiment_analyzer import get_sentiment_label
-    from sqlalchemy import func
     
     if country and country.lower() != "global":
         # Export historical data for specific country
