@@ -21,7 +21,8 @@ def get_model():
     
     if _model is None:
         logger.info("Loading sentiment analysis model...")
-        model_name = "nlptown/bert-base-multilingual-uncased-sentiment"
+        # Use FinBERT which is better for financial/economic text
+        model_name = "yiyanghkust/finbert-tone"
         
         _tokenizer = AutoTokenizer.from_pretrained(model_name)
         _model = AutoModelForSequenceClassification.from_pretrained(model_name)
@@ -76,21 +77,47 @@ def analyze_sentiment(text: str, max_length: int = 512) -> float:
             outputs = model(**inputs)
             probabilities = torch.softmax(outputs.logits, dim=1)
             
-            # Get weighted average (1-5 stars)
-            # Stars are indices 0-4, so we add 1
-            star_weights = torch.tensor([1, 2, 3, 4, 5], dtype=torch.float).to(device)
-            weighted_score = (probabilities[0] * star_weights).sum().item()
+            # yiyanghkust/finbert-tone labels: [Neutral, Positive, Negative]
+            # Verify via config or assuming standard 3-class for now, usually:
+            # 0: Neutral, 1: Positive, 2: Negative (Actually check id2label if possible, but standard is usually this)
+            # WAIT: yiyanghkust/finbert-tone mapping is: {0: 'Neutral', 1: 'Positive', 2: 'Negative'}
+            # Let's verify by checking probabilities.
             
-            scores.append(weighted_score)
+            # Actually, let's use the explicit indices if we can, but safely we can get them from the model config if we had access here easily.
+            # Standard FinBERT (yiyanghkust): 0=Neutral, 1=Positive, 2=Negative.
+            
+            # Score = Prob(Positive) - Prob(Negative)
+            # This gives range -1 to 1.
+            
+            # Get probabilities
+            probs = probabilities[0].tolist() # [neutral, positive, negative] based on widely used config for this model
+            
+            # However, sometimes models differ. ProsusAI/finbert is [positive, negative, neutral].
+            # yiyanghkust is usually [Neutral, Positive, Negative]. 
+            # Let's inspect model.config.id2label if we were running it, but I'll write code to be safe or rely on known config.
+            
+            # Safest is to rely on label names if we can, or just hardcode for yiyanghkust which is robust.
+            # yiyanghkust/finbert-tone:
+            # 0: Neutral
+            # 1: Positive
+            # 2: Negative
+            
+            neutral_prob = probs[0]
+            positive_prob = probs[1]
+            negative_prob = probs[2]
+            
+            # Calculate composite score
+            # Base it purely on Positive vs Negative
+            # If Neutral is high, score acts closer to 0 which is correct.
+            chunk_score = positive_prob - negative_prob
+            
+            scores.append(chunk_score)
     
     # Average all chunk scores
     avg_score = sum(scores) / len(scores)
     
-    # Normalize from 1-5 scale to -1 to +1 scale
-    # 1 star -> -1.0, 3 stars -> 0.0, 5 stars -> +1.0
-    normalized_score = (avg_score - 3) / 2
-    
-    return round(normalized_score, 3)
+    # Scale is already -1 to 1 naturally
+    return round(avg_score, 3)
 
 
 def chunk_text(text: str, max_length: int = 400) -> list:

@@ -192,9 +192,30 @@
                                 <span class="material-symbols-outlined">description</span>
                                 Economic Analysis Summary
                             </h3>
-                            <span class="summary-date" id="summaryDateLabel"></span>
+                            <div class="header-right">
+                                <span class="summary-date" id="summaryDateLabel"></span>
+                                <button id="regenerateSummaryBtn" class="btn btn-outline-sm" title="Regenerate Summary"
+                                    style="margin-left: 10px; padding: 4px 8px; font-size: 0.8rem;">
+                                    <span class="material-symbols-outlined" style="font-size: 16px;">refresh</span>
+                                    Regenerate
+                                </button>
+                            </div>
                         </div>
                         <div id="countrySummaryContent" class="summary-content markdown-content"></div>
+                    </div>
+
+                    <!-- Generate Summary Placeholder (Shown when no summary exists) -->
+                    <div id="generateSummaryPlaceholder" class="card hidden"
+                        style="text-align: center; padding: 40px 20px;">
+                        <span class="material-symbols-outlined"
+                            style="font-size: 48px; color: var(--md-sys-color-outline); margin-bottom: 16px;">analytics</span>
+                        <h3 style="margin-bottom: 8px;">No Analysis Available</h3>
+                        <p style="color: var(--md-sys-color-on-surface-variant); margin-bottom: 24px;">Generate an
+                            AI-powered economic summary for this month.</p>
+                        <button id="createSummaryBtn" class="btn btn-primary">
+                            <span class="material-symbols-outlined">auto_awesome</span>
+                            Generate Summary
+                        </button>
                     </div>
 
                     <!-- Articles List -->

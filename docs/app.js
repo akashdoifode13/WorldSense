@@ -1,3 +1,4 @@
+const STATIC_MODE = true;
 let currentDate = new Date();
 let selectedDate = null;
 let selectedCountry = 'Global';
@@ -6,59 +7,10 @@ let currentTheme = 'dark';
 let map = null;
 
 // ===== API Configuration =====
-const IS_STATIC = window.location.hostname.includes('github.io');
-const API_BASE = IS_STATIC ? '/WorldSense/api' : window.location.origin;
-
-// Helper to construct API URLs depending on mode
-function getApiUrl(endpoint, params = {}) {
-    if (!IS_STATIC) {
-        // Dynamic Mode: /api/endpoint?param=value
-        const url = new URL(`${window.location.origin}/api/${endpoint}`);
-        Object.keys(params).forEach(key => url.searchParams.append(key, params[key]));
-        return url.toString();
-    } else {
-        // Static Mode: /api/endpoint_param1_param2.json
-        // Flatten params into filename
-        let filename = endpoint;
-        const paramKeys = Object.keys(params).sort(); // Sort for consistency
-
-        if (paramKeys.length > 0) {
-            // Special handling for specific endpoints to match generator logic
-            if (endpoint === 'articles' || endpoint === 'summary') {
-                // api/articles/YYYY-MM-DD?country=X -> api/articles/YYYY-MM-DD_X.json
-                // The endpoint arg already contains date path "articles/2024-01-01"
-                const datePart = endpoint.split('/')[1];
-                const typePart = endpoint.split('/')[0];
-                const country = params.country || 'Global';
-                const safeCountry = country.replace(/ /g, '_');
-                return `${API_BASE}/${typePart}/${datePart}_${safeCountry}.json`;
-            }
-
-            // Standard query params: api/endpoint?country=X -> api/endpoint_X.json
-            const values = paramKeys.map(key => {
-                if (key === 'country') return params[key].replace(/ /g, '_');
-                return params[key];
-            });
-            filename += '_' + values.join('_');
-        }
-
-        return `${API_BASE}/${filename}.json`;
-    }
-}
+const API_BASE = window.location.origin;
 
 // ===== Initialization =====
 document.addEventListener('DOMContentLoaded', () => {
-    if (IS_STATIC) {
-        console.log('🚀 Running in Static Demo Mode on GitHub Pages');
-        document.body.classList.add('static-mode');
-        // Disable scrape/generate buttons in static mode
-        const scrapeBtn = document.getElementById('scrapeBtn');
-        if (scrapeBtn) {
-            scrapeBtn.title = "Not available in Demo Mode";
-            scrapeBtn.disabled = true;
-            scrapeBtn.style.opacity = '0.5';
-        }
-    }
     initializeApp();
 });
 
@@ -72,383 +24,37 @@ window.addEventListener('load', () => {
     }
 });
 
-// ===== Core Logic =====
 async function initializeApp() {
-    // 1. Load available dates for Global (default)
+    setupEventListeners();
+
+    const savedTheme = localStorage.getItem('theme') || 'dark';
+    setTheme(savedTheme);
+
+    initializeCountryData();
+
+    // 1. Show the view FIRST so the div has height
+    showMapView();
+
+    // 2. Initialize Map with the config from your example
+    setTimeout(() => {
+        initMap();
+    }, 100);
+
     await loadAvailableDates();
 
-    // 2. Load last run date
-    await loadLastRunDate();
+    // Check if we have an initial country from URL (e.g., /india)
+    if (window.INITIAL_COUNTRY && window.INITIAL_COUNTRY !== 'Global') {
+        const countryName = window.INITIAL_COUNTRY;
+        // Find the country code
+        const country = COUNTRY_LIST.find(c => c.name.toLowerCase() === countryName.toLowerCase());
+        const code = country ? country.code : null;
 
-    // 3. Check for specific country in URL (e.g. /india)
-    // In Static mode, we can't rely on server routing, but we can check hash or query if needed
-    // For now support standard clean URL if supported by 404 hack, or just default to Global
-    if (!IS_STATIC && window.INITIAL_COUNTRY) {
-        const countryCode = getCountryCode(window.INITIAL_COUNTRY);
-        if (countryCode) {
-            // Defer selection until map is ready
-            selectedCountry = window.INITIAL_COUNTRY;
-            // We'll let map init handle the visual selection
-        }
-    }
-
-    // 4. Setup Event Listeners
-    setupEventListeners();
-}
-
-async function initMap() {
-    // Fetch sentiment data for coloring
-    await fetchCountrySentiments();
-
-    map = new jsVectorMap({
-        selector: "#world-map",
-        map: "world",
-        backgroundColor: "transparent",
-        draggable: true,
-        zoomButtons: true,
-        zoomOnScroll: true,
-        regionsSelectable: true,
-        regionsSelectableOne: true,
-        bindTouchEvents: true,
-
-        // Initial configuration
-        regionStyle: {
-            initial: {
-                fill: currentTheme === 'dark' ? '#2d3748' : '#e2e8f0',
-                stroke: currentTheme === 'dark' ? '#1a202c' : '#cbd5e0',
-                strokeWidth: 0.5,
-                fillOpacity: 1
-            },
-            hover: {
-                fillOpacity: 0.8,
-                cursor: 'pointer'
-            },
-            selected: {
-                fill: '#3b82f6' // Blue for selected
-            }
-        },
-
-        // Tooltip customization
-        onRegionTooltipShow(event, tooltip, code) {
-            const countryName = getCountryName(code);
-            const sentiment = countrySentiments[countryName];
-
-            let sentimentHtml = '';
-            if (sentiment) {
-                const color = getSentimentColor(sentiment.score);
-                const score = sentiment.score.toFixed(2);
-                const label = getSentimentLabel(sentiment.score);
-                // Also show article count if available
-                const count = sentiment.article_count || 0;
-
-                sentimentHtml = `
-                    <div class="map-tooltip-sentiment">
-                        <div class="tooltip-score">
-                            <span class="tooltip-dot" style="background-color: ${color}"></span>
-                            ${label} (${score})
-                        </div>
-                        <div class="tooltip-articles">${count} articles</div>
-                    </div>
-                `;
-            }
-
-            tooltip.text(
-                `<div class="map-tooltip-content">
-                    <strong>${countryName}</strong>
-                    ${sentimentHtml}
-                </div>`,
-                true // Allow HTML
-            );
-        },
-
-        // Click handler
-        onRegionClick(event, code) {
-            const countryName = getCountryName(code);
-            console.log(`Region clicked: ${countryName} (${code})`);
+        // Wait for map to initialize then select country
+        setTimeout(() => {
             selectCountry(countryName, code);
-        },
-
-        // Loaded handler
-        onLoaded(map) {
-            window.mapInstance = map; // Global reference
-
-            // If we have an initial country selection, apply it now
-            if (selectedCountry && selectedCountry !== 'Global') {
-                const code = getCountryCode(selectedCountry);
-                if (code) {
-                    map.setSelectedRegions([code]);
-                }
-            }
-
-            // Re-apply colors after a short delay to ensure DOM is ready
-            setTimeout(() => {
-                applySentimentColors();
-
-                // Hide loading overlay
-                const loadingOverlay = document.getElementById('mapLoadingOverlay');
-                if (loadingOverlay) {
-                    loadingOverlay.classList.add('hidden');
-                }
-            }, 100);
-        }
-    });
-}
-
-// Helper: Get color based on sentiment score
-function getSentimentColor(score) {
-    if (score === null || score === undefined) return '#cbd5e0'; // Gray 300
-    if (score <= -0.6) return '#ef4444'; // Red 500
-    if (score <= -0.2) return '#fca5a5'; // Red 300
-    if (score < 0.2) return '#94a3b8';   // Slate 400 (Neutral)
-    if (score < 0.6) return '#86efac';   // Green 300
-    return '#22c55e';                    // Green 500
-}
-
-// Helper: Get label based on sentiment score
-function getSentimentLabel(score) {
-    if (score === null || score === undefined) return 'Unknown';
-    if (score <= -0.6) return 'Very Negative';
-    if (score <= -0.2) return 'Negative';
-    if (score < 0.2) return 'Neutral';
-    if (score < 0.6) return 'Positive';
-    return 'Very Positive';
-}
-
-// Fetch sentiment data for all countries to color the map
-async function fetchCountrySentiments() {
-    try {
-        const url = getApiUrl('country-sentiments');
-        const response = await fetch(url);
-        if (!response.ok) throw new Error('Failed to load sentiments');
-
-        const data = await response.json();
-
-        countrySentiments = {};
-
-        // Handle dictionary format (current backend) or array (legacy/future proof)
-        if (Array.isArray(data)) {
-            data.forEach(item => {
-                const score = item.sentiment_score !== undefined ? item.sentiment_score : item.score;
-                countrySentiments[item.country] = {
-                    score: score,
-                    label: item.sentiment_label || item.label || getSentimentLabel(score),
-                    color: item.color || getSentimentColor(score),
-                    article_count: item.article_count
-                };
-            });
-        } else {
-            // Dictionary format: { "Country": { score: X, ... } }
-            countrySentiments = data;
-        }
-
-        // Calculate stats
-        let totalAnalyzed = 0;
-        let positiveCount = 0;
-        let negativeCount = 0;
-
-        Object.values(countrySentiments).forEach(item => {
-            const score = item.score !== undefined ? item.score : item.sentiment_score;
-            if (score !== null && score !== undefined) {
-                totalAnalyzed++;
-                if (score > 0.2) positiveCount++;
-                if (score < -0.2) negativeCount++;
-            }
-        });
-
-        // Store for stats
-        window.dashboardStats = { totalAnalyzed, positiveCount, negativeCount };
-
-        // Update dashboard stats
-        updateDashboardStats();
-
-        console.log(`Loaded sentiments for ${Object.keys(countrySentiments).length} countries`);
-
-    } catch (error) {
-        console.error('Error loading country sentiments:', error);
+        }, 500);
     }
 }
-
-// Load dates that have data
-async function loadAvailableDates() {
-    try {
-        const url = getApiUrl('dates', { country: selectedCountry });
-        const response = await fetch(url);
-        if (!response.ok) throw new Error('Failed to load dates');
-
-        const dates = await response.json();
-        datesWithData = new Set(dates); // YYYY-MM-DD format
-
-        // If we have data, set current date to latest
-        if (datesWithData.size > 0 && !selectedDate) {
-            const latestDateStr = Array.from(datesWithData).sort().pop();
-            if (latestDateStr) {
-                const latestDate = new Date(latestDateStr);
-                // Adjust timezone
-                latestDate.setMinutes(latestDate.getMinutes() + latestDate.getTimezoneOffset());
-                currentDate = latestDate; // For calendar
-                // Don't auto-select date here, let user click or logic decide
-            }
-        }
-
-    } catch (error) {
-        console.error('Error loading dates:', error);
-    }
-}
-
-async function loadLastRunDate() {
-    try {
-        const url = getApiUrl('last-run-date', { country: selectedCountry });
-        const response = await fetch(url);
-        // ... rest of function logic matches original, but uses new response
-        if (!response.ok) throw new Error('Failed to load last run date');
-
-        const data = await response.json();
-        const lastUpdatedEl = document.getElementById('lastUpdatedDate');
-
-        if (data.last_run_date) {
-            const lastDate = new Date(data.last_run_date);
-            // Adjust for timezone
-            lastDate.setMinutes(lastDate.getMinutes() + lastDate.getTimezoneOffset());
-            // Format as 'Dec 2025' or 'Dec, 2025'
-            const options = { year: 'numeric', month: 'short' };
-            lastUpdatedEl.textContent = lastDate.toLocaleDateString('en-US', options);
-        } else {
-            lastUpdatedEl.textContent = 'No data yet';
-        }
-    } catch (error) {
-        console.error('Error loading last run date:', error);
-        document.getElementById('lastUpdatedDate').textContent = '-';
-    }
-}
-
-async function loadCountryOverview() {
-    try {
-        const url = getApiUrl('country-overview', { country: selectedCountry });
-        const response = await fetch(url);
-        if (!response.ok) throw new Error('Failed to load country overview');
-
-        const data = await response.json();
-
-        // Update summary if exists
-        const summaryCard = document.getElementById('countrySummaryCard');
-        const summaryContent = document.getElementById('countrySummaryContent');
-        const summaryDateLabel = document.getElementById('summaryDateLabel');
-
-        // Check for specific date summary from loadCountryOverviewForDate
-        // But here we are loading general overview which usually has latest summary
-
-        if (data.latest_summary) {
-            summaryContent.innerHTML = marked.parse(data.latest_summary.summary_text);
-            summaryDateLabel.textContent = new Date(data.latest_summary.date).toLocaleDateString('en-US', {
-                year: 'numeric', month: 'long', day: 'numeric'
-            });
-            summaryCard.classList.remove('hidden');
-        } else {
-            summaryCard.classList.add('hidden');
-        }
-
-        // Display recent signals (articles)
-        const signalsGrid = document.getElementById('signalsGrid');
-        signalsGrid.innerHTML = '';
-
-        if (data.recent_articles && data.recent_articles.length > 0) {
-            data.recent_articles.forEach(article => {
-                const signalCard = createSignalCard(article);
-                signalsGrid.appendChild(signalCard);
-            });
-        } else {
-            signalsGrid.innerHTML = '<div class="no-data">No recent signals found.</div>';
-        }
-
-        // Show the overview section
-        document.getElementById('countryOverview').classList.remove('hidden');
-
-    } catch (error) {
-        console.error('Error loading country overview:', error);
-        document.getElementById('countryOverview').classList.add('hidden');
-    }
-}
-
-async function loadCountryOverviewForDate(dateStr) {
-    try {
-        // In static mode, this maps to api/summary/YYYY-MM-DD_Country.json
-        const url = getApiUrl(`summary/${dateStr}`, { country: selectedCountry });
-        const summaryResponse = await fetch(url);
-
-        if (summaryResponse.ok) {
-            const summary = await summaryResponse.json();
-
-            // Update the country summary card
-            const summaryCard = document.getElementById('countrySummaryCard');
-            const summaryContent = summaryCard.querySelector('.summary-content');
-
-            if (summaryContent && summary.summary_text) {
-                summaryContent.innerHTML = marked.parse(summary.summary_text);
-                summaryCard.classList.remove('hidden');
-            }
-        }
-    } catch (error) {
-        console.error('Error loading summary for date:', error);
-    }
-}
-
-async function loadDailyData(date) {
-    const dateStr = formatDate(date);
-    showLoading('Loading articles...');
-
-    try {
-        // Load articles
-        const articlesUrl = getApiUrl(`articles/${dateStr}`, { country: selectedCountry });
-        const articlesResponse = await fetch(articlesUrl);
-        if (!articlesResponse.ok) throw new Error('Failed to load articles');
-
-        const articles = await articlesResponse.json();
-        displayArticles(articles);
-
-        // Try to load summary (redundant with loadCountryOverviewForDate but keeps existing logic)
-        try {
-            const summaryUrl = getApiUrl(`summary/${dateStr}`, { country: selectedCountry });
-            const summaryResponse = await fetch(summaryUrl);
-            if (summaryResponse.ok) {
-                const summary = await summaryResponse.json();
-                displaySummary(summary.summary_text);
-            } else {
-                // No summary yet
-                if (!document.getElementById('countrySummaryCard').querySelector('.summary-content').innerHTML) {
-                    document.getElementById('summaryCard').classList.add('hidden');
-                }
-            }
-        } catch (e) {
-            // Summary failure shouldn't break page
-        }
-
-    } catch (error) {
-        showToast('Error loading daily data: ' + error.message, 'error');
-    } finally {
-        hideLoading();
-    }
-}
-
-// ... rest of script ...
-// Update scrapeNews and generateSummary to block in static mode
-
-async function scrapeNews() {
-    if (IS_STATIC) {
-        showToast('Scraping is not available in Demo Mode', 'info');
-        return;
-    }
-    // ... original code ...
-}
-
-async function generateSummary() {
-    if (IS_STATIC) {
-        showToast('Generation is not available in Demo Mode', 'info');
-        return;
-    }
-    // ... original code ...
-}
-
-
 
 // If we have data, set current date to latest
 if (datesWithData.size > 0) {
@@ -497,6 +103,18 @@ function setupEventListeners() {
         datePickerContainer.addEventListener('click', () => {
             datePicker.showPicker(); // Modern browsers
         });
+    }
+
+    // Regenerate Summary button
+    const regenBtn = document.getElementById('regenerateSummaryBtn');
+    if (regenBtn) {
+        regenBtn.addEventListener('click', regenerateSummary);
+    }
+
+    // Create Summary button (Placeholder)
+    const createBtn = document.getElementById('createSummaryBtn');
+    if (createBtn) {
+        createBtn.addEventListener('click', regenerateSummary); // Reuse same function
     }
 
     // Close suggestions when clicking outside
@@ -640,7 +258,93 @@ function handleDatePickerChange(e) {
     }
 }
 
+// Load country overview for a specific date
+async function loadCountryOverviewForDate(dateStr) {
+    if (!dateStr) return;
 
+    // Show loading state
+    const summaryContent = document.getElementById('countrySummaryContent');
+    if (summaryContent) {
+        summaryContent.innerHTML = '<div class="loading-spinner"><span class="material-symbols-outlined spin">refresh</span> Loading analysis...</div>';
+    }
+
+    try {
+        const country = selectedCountry || 'Global';
+        // Use the country-overview endpoint which might support date filtering, 
+        // OR use separate endpoints. 
+        // Based on backend/main.py (Step 686), /api/country-overview takes 'country' but gets LATEST date.
+        // We need specific date. 
+        // Creating parallel fetch for summary and articles is safer if overview doesn't support date.
+
+        // 1. Fetch Summary
+        const summaryPromise = fetchAPI(`/api/summary/${dateStr}?country=${encodeURIComponent(country)}`);
+
+        // 2. Fetch Articles (need endpoint for this)
+        // Backend main.py (Step 686) showed get_country_overview uses get_articles_by_date.
+        // Let's assume we can GET /api/articles?date=... or similar?
+        // Actually, let's use the pattern from the other logic block: fetch articles separately.
+        const articlesPromise = fetchAPI(`/api/articles?date=${dateStr}&country=${encodeURIComponent(country)}`);
+
+        const [summaryRes, articlesRes] = await Promise.all([summaryPromise, articlesPromise]);
+
+        // Handle Summary
+        const summaryCard = document.getElementById('countrySummaryCard');
+        const summaryPlaceholder = document.getElementById('generateSummaryPlaceholder');
+        const summaryDateLabel = document.getElementById('summaryDateLabel');
+
+        if (summaryRes.ok) {
+            const summary = await summaryRes.json();
+            if (summary && summary.summary_text) {
+                // Show Summary
+                if (summaryCard) summaryCard.classList.remove('hidden');
+                if (summaryPlaceholder) summaryPlaceholder.classList.add('hidden');
+
+                if (summaryContent) summaryContent.innerHTML = marked.parse(summary.summary_text);
+
+                if (summary.generated_at && summaryDateLabel) {
+                    const genDate = new Date(summary.generated_at);
+                    summaryDateLabel.textContent = `Generated: ${genDate.toLocaleDateString()}`;
+                }
+            } else {
+                // No summary text -> Show Placeholder
+                if (summaryCard) summaryCard.classList.add('hidden');
+                if (summaryPlaceholder) summaryPlaceholder.classList.remove('hidden');
+            }
+        } else {
+            // Error or 404 -> Show Placeholder
+            if (summaryCard) summaryCard.classList.add('hidden');
+            if (summaryPlaceholder) summaryPlaceholder.classList.remove('hidden');
+        }
+
+        // Handle Articles
+        let articleCount = 0;
+        if (articlesRes.ok) {
+            const articles = await articlesRes.json();
+            articleCount = articles.length;
+            displayCountryArticles(articles);
+        } else {
+            displayCountryArticles([]);
+        }
+
+        // Update placeholder button state based on articles
+        const createBtn = document.getElementById('createSummaryBtn');
+        if (createBtn && summaryPlaceholder && !summaryPlaceholder.classList.contains('hidden')) {
+            if (articleCount === 0) {
+                createBtn.disabled = true;
+                createBtn.innerHTML = '<span class="material-symbols-outlined">block</span> No Articles to Analyze';
+                createBtn.title = "Cannot generate summary without articles";
+            } else {
+                createBtn.disabled = false;
+                createBtn.innerHTML = '<span class="material-symbols-outlined">auto_awesome</span> Generate Summary';
+                createBtn.title = "";
+            }
+        }
+
+    } catch (error) {
+        console.error('Error loading country overview:', error);
+        showToast('Failed to load data', 'error');
+    }
+}
 
 // ===== Theme Management =====
 function setTheme(theme) {
@@ -791,7 +495,32 @@ function setMapLoading(loading, message = 'Analyzing global sentiment...') {
     }
 }
 
+// Fetch country sentiments from API
+async function fetchCountrySentiments() {
+    try {
+        const response = await fetchAPI('/api/country-sentiments');
+        if (response.ok) {
+            countrySentiments = await response.json();
+            console.log('Loaded sentiment data for', Object.keys(countrySentiments).length, 'countries');
+            updateLastUpdated();
+            return countrySentiments;
+        }
+    } catch (error) {
+        console.warn('Error fetching country sentiments:', error);
+    }
+    return {};
+}
 
+// Fetch article counts for all countries (for tooltip)
+async function fetchArticleCounts() {
+    try {
+        // We can derive this from existing country overview calls or add a new endpoint
+        // For now, we'll show the count from the sentiment data dates
+        console.log('Article counts will be fetched per country on hover');
+    } catch (error) {
+        console.warn('Error fetching article counts:', error);
+    }
+}
 
 // Get color for a country based on sentiment
 function getCountryColor(countryName) {
@@ -845,7 +574,127 @@ function applySentimentColors() {
     console.log(`Applied sentiment colors to ${coloredCount} countries`);
 }
 
+async function initMap() {
+    // Prevent re-initialization
+    if (map) return;
 
+    const mapElement = document.getElementById('world-map');
+
+    // Safety check: if element has 0 height, wait and try again
+    if (!mapElement || mapElement.offsetHeight === 0) {
+        setTimeout(initMap, 200);
+        return;
+    }
+
+    // Show loading overlay
+    setMapLoading(true, 'Loading global economic data...');
+
+    // Clear previous content
+    mapElement.innerHTML = '';
+
+    // Fetch sentiment data before initializing map
+    await fetchCountrySentiments();
+
+    try {
+        // --- CONFIGURATION WITH SENTIMENT COLORING ---
+        map = new jsVectorMap({
+            selector: '#world-map',
+            map: 'world',
+
+            // Look and Feel options
+            backgroundColor: 'transparent',
+            draggable: true,
+            zoomButtons: true,
+            zoomOnScroll: true,
+
+            // Region (Country) Styling
+            regionStyle: {
+                initial: {
+                    fill: '#d1d5db', // Default gray color
+                    stroke: '#6b7280', // Border color
+                    strokeWidth: 0.5,
+                    fillOpacity: 1
+                },
+                hover: {
+                    fillOpacity: 0.8,
+                    cursor: 'pointer'
+                },
+                selected: {
+                    fill: '#1f2937' // Dark gray when selected
+                }
+            },
+
+            // Add Tooltips with sentiment info
+            showTooltip: true,
+            onRegionTooltipShow: function (event, tooltip, code) {
+                const country = COUNTRY_LIST.find(c => c.code === code);
+                const countryName = country ? country.name : code;
+                const sentiment = countrySentiments[countryName];
+
+                let tooltipContent = `<strong>${countryName}</strong>`;
+
+                if (sentiment) {
+                    const scoreFormatted = (sentiment.score * 100).toFixed(0);
+                    const scoreSign = sentiment.score >= 0 ? '+' : '';
+                    tooltipContent += `<br><span style="color: ${sentiment.color};">● ${sentiment.label}</span>`;
+                    tooltipContent += `<br><small>Score: ${scoreSign}${scoreFormatted}%</small>`;
+                }
+
+                tooltip.text(tooltipContent, true);
+            },
+
+            // Marker Styling
+            markerStyle: {
+                initial: {
+                    fill: '#000000ff',
+                    stroke: '#fff',
+                    r: 5
+                },
+                hover: {
+                    fill: '#050505ff',
+                    stroke: '#fff',
+                    r: 7
+                }
+            },
+
+            // Connect click event to your App Logic
+            onRegionClick: function (event, code) {
+                console.log("Clicked country code:", code);
+
+                // 1. Try to find in our standardized COUNTRY_LIST first (by code)
+                const standardCountry = COUNTRY_LIST.find(c => c.code === code);
+
+                let countryName;
+                if (standardCountry) {
+                    countryName = standardCountry.name;
+                } else {
+                    // 2. Fallback to map data
+                    if (map && typeof map.getRegionName === 'function') {
+                        countryName = map.getRegionName(code);
+                    } else if (jsVectorMap.maps.world.paths[code]) {
+                        countryName = jsVectorMap.maps.world.paths[code].name;
+                    }
+                }
+
+                if (countryName) {
+                    selectCountry(countryName, code);
+                }
+            }
+        });
+
+        console.log("Map initialized successfully");
+
+        // Apply sentiment colors after a short delay to ensure SVG is rendered
+        setTimeout(() => {
+            applySentimentColors();
+            setMapLoading(false);
+        }, 100);
+
+    } catch (error) {
+        console.error("Map failed to load:", error);
+        setMapLoading(false);
+    }
+}
 
 async function selectCountry(countryName, code) {
     console.log('Selecting country:', countryName, code);
@@ -1285,46 +1134,82 @@ function showDailyView(date) {
 // ===== API Functions =====
 let articleCounts = {}; // Store article counts per date
 
+async function loadLastRunDate() {
+    try {
+        const response = await fetchAPI(`/api/last-run-date?country=${encodeURIComponent(selectedCountry)}`);
+        if (!response.ok) throw new Error('Failed to load last run date');
 
+        const data = await response.json();
+        const lastUpdatedEl = document.getElementById('lastUpdatedDate');
 
-function displayCountrySummary(summaryText, dateStr) {
-    const card = document.getElementById('countrySummaryCard');
-    const content = document.getElementById('countrySummaryContent');
-    const dateLabel = document.getElementById('summaryDateLabel');
-
-    // Set date label
-    if (dateStr) {
-        const date = new Date(dateStr);
-        const options = { year: 'numeric', month: 'long', day: 'numeric' };
-        dateLabel.textContent = date.toLocaleDateString('en-US', options);
-    }
-
-    // Configure marked.js options
-    marked.setOptions({
-        breaks: true,
-        gfm: true,
-        headerIds: true,
-        mangle: false,
-        highlight: function (code, lang) {
-            if (lang && hljs.getLanguage(lang)) {
-                try {
-                    return hljs.highlight(code, { language: lang }).value;
-                } catch (err) { }
-            }
-            return hljs.highlightAuto(code).value;
+        if (data.last_run_date) {
+            const lastDate = new Date(data.last_run_date);
+            // Adjust for timezone
+            lastDate.setMinutes(lastDate.getMinutes() + lastDate.getTimezoneOffset());
+            // Format as 'Dec 2025' or 'Dec, 2025'
+            const options = { year: 'numeric', month: 'short' };
+            lastUpdatedEl.textContent = lastDate.toLocaleDateString('en-US', options);
+        } else {
+            lastUpdatedEl.textContent = 'No data yet';
         }
-    });
-
-    // Parse Markdown to HTML
-    content.innerHTML = marked.parse(summaryText);
-
-    // Highlight code blocks
-    content.querySelectorAll('pre code').forEach((block) => {
-        hljs.highlightElement(block);
-    });
-
-    card.classList.remove('hidden');
+    } catch (error) {
+        console.error('Error loading last run date:', error);
+        document.getElementById('lastUpdatedDate').textContent = '-';
+    }
 }
+
+async function loadCountryOverview() {
+    try {
+        const response = await fetchAPI(`/api/country-overview?country=${encodeURIComponent(selectedCountry)}`);
+        if (!response.ok) throw new Error('Failed to load country overview');
+
+        const data = await response.json();
+
+        const overviewEl = document.getElementById('countryOverview');
+        overviewEl.classList.remove('hidden');
+
+        if (data.last_run_date) {
+            // Set date picker to the latest month
+            const latestDate = new Date(data.last_run_date);
+            const year = latestDate.getFullYear();
+            const month = String(latestDate.getMonth() + 1).padStart(2, '0');
+            const dateStr = `${year}-${month}-${String(latestDate.getDate()).padStart(2, '0')}`;
+
+            const datePicker = document.getElementById('datePicker');
+            datePicker.value = `${year}-${month}`;
+
+            selectedDate = latestDate; // Update global state
+
+            // Reuse the main loading logic which handles everything correctly
+            await loadCountryOverviewForDate(data.last_run_date);
+
+        } else {
+            // No data yet - set date picker to current month and show empty state
+            const today = new Date();
+            const year = today.getFullYear();
+            const month = String(today.getMonth() + 1).padStart(2, '0');
+            const datePicker = document.getElementById('datePicker');
+            datePicker.value = `${year}-${month}`;
+
+            selectedDate = today;
+
+            // Trigger load with today's date to show the "No Data" placeholder
+            const dateStr = `${year}-${month}-${String(today.getDate()).padStart(2, '0')}`;
+            await loadCountryOverviewForDate(dateStr);
+        }
+    } catch (error) {
+        console.error('Error loading country overview:', error);
+
+        // Fallback
+        const today = new Date();
+        const year = today.getFullYear();
+        const month = String(today.getMonth() + 1).padStart(2, '0');
+        document.getElementById('datePicker').value = `${year}-${month}`;
+        document.getElementById('countryOverview').classList.remove('hidden');
+    }
+}
+
+
 
 function displayCountryArticles(articles) {
     const container = document.getElementById('countryArticlesList');
@@ -1351,7 +1236,213 @@ function displayCountryArticles(articles) {
     `).join('') + (hasMore ? `<div class="article-card-more">+ ${articles.length - 10} more signals available. Select a date from calendar to view all.</div>` : '');
 }
 
+async function loadAvailableDates() {
+    try {
+        const response = await fetchAPI(`/api/dates?country=${encodeURIComponent(selectedCountry)}`);
+        if (!response.ok) throw new Error('Failed to load dates');
 
+        const dates = await response.json();
+        datesWithData = new Set(dates.map(d => d.date));
+
+        // Store article counts
+        articleCounts = {};
+        dates.forEach(d => {
+            articleCounts[d.date] = d.article_count || 0;
+        });
+    } catch (error) {
+        console.error('Error loading dates:', error);
+    }
+}
+
+async function loadDailyData(date) {
+    const dateStr = formatDate(date);
+    showLoading('Loading articles...');
+
+    try {
+        // Load daily signals
+        try {
+            const articlesResponse = await fetchAPI(`/api/articles?date=${dateStr}&country=${encodeURIComponent(selectedCountry)}`);
+            if (articlesResponse.ok) {
+                const articles = await articlesResponse.json();
+                displayCountryArticles(articles);
+            }
+        } catch (e) { console.error(e); }
+
+        // Load daily summary
+        try {
+            const summaryResponse = await fetchAPI(`/api/summary/${dateStr}?country=${encodeURIComponent(selectedCountry)}`);
+            if (summaryResponse.ok) {
+                const summary = await summaryResponse.json();
+                displayCountrySummary(summary.summary_text, dateStr);
+            } else {
+                document.getElementById('countrySummaryCard').classList.add('hidden');
+            }
+        } catch (e) {
+            document.getElementById('countrySummaryCard').classList.add('hidden');
+        }
+    } catch (error) {
+        showToast('Error loading daily data: ' + error.message, 'error');
+    } finally {
+        hideLoading();
+    }
+}
+
+async function scrapeNews() {
+    const btn = document.getElementById('scrapeBtn');
+    const originalText = btn.innerHTML; // Store original text to restore later
+    btn.disabled = true;
+
+    if (STATIC_MODE) {
+        showToast('Refresh is not available in Demo Mode', 'warning');
+        btn.innerHTML = originalText;
+        btn.disabled = false;
+        return;
+    }
+
+    showLoading(`Initializing scraper for ${selectedCountry}...`);
+    showToast('Refreshing data... this may take a minute', 'info');
+
+
+    const loadingText = document.getElementById('loadingText');
+    const logContainer = document.createElement('div');
+    logContainer.className = 'scraping-log';
+    loadingText.appendChild(logContainer);
+
+    try {
+        const eventSource = new EventSource(`${API_BASE}/api/scrape/stream?country=${encodeURIComponent(selectedCountry)}`);
+
+        eventSource.onmessage = async function (event) {
+            const data = JSON.parse(event.data);
+
+            if (data.status === 'complete') {
+                eventSource.close();
+                const today = new Date();
+                const todayStr = formatDate(today);
+
+                showToast(`✓ Scraping Complete! Identified ${data.articles_added} new signals. Generating summary...`, 'success', 6000);
+                await loadAvailableDates();
+                await loadLastRunDate();
+
+                // Auto-generate summary for today after scraping
+                if (data.articles_added > 0) {
+                    try {
+                        // Generate summary in background
+                        fetchAPI(`${API_BASE}/api/summarize/${todayStr}?country=${encodeURIComponent(selectedCountry)}`, {
+                            method: 'POST'
+                        }).catch(err => console.error('Summary generation started in background'));
+
+                        // Wait a bit then load overview
+                        setTimeout(async () => {
+                            await loadCountryOverview();
+                        }, 5000);
+                    } catch (err) {
+                        console.error('Error triggering summary generation:', err);
+                        await loadCountryOverview();
+                    }
+                } else {
+                    await loadCountryOverview();
+                }
+
+                // renderCalendar(); // Removed - calendar grid no longer exists
+                btn.disabled = false;
+                hideLoading();
+            } else if (data.status === 'error') {
+                eventSource.close();
+                showToast('Error: ' + data.message, 'error');
+                btn.disabled = false;
+                hideLoading();
+            } else if (data.status === 'skipped') {
+                // Show skipped messages in a lighter color or specific style if needed
+                const statusLine = document.createElement('div');
+                statusLine.className = 'log-line skipped';
+                statusLine.textContent = `> ${data.message}`;
+                statusLine.style.opacity = '0.7'; // Make skipped less prominent
+
+                // Keep only last 8 lines
+                while (logContainer.children.length > 7) {
+                    logContainer.removeChild(logContainer.firstChild);
+                }
+
+                logContainer.appendChild(statusLine);
+            } else {
+                // Update loading text with current action
+                const statusLine = document.createElement('div');
+                statusLine.className = 'log-line';
+                statusLine.textContent = `> ${data.message}`;
+
+                // Keep only last 8 lines
+                while (logContainer.children.length > 7) {
+                    logContainer.removeChild(logContainer.firstChild);
+                }
+
+                logContainer.appendChild(statusLine);
+            }
+        };
+
+        eventSource.onerror = function () {
+            eventSource.close();
+            btn.disabled = false;
+            hideLoading();
+            // Only show error if we didn't complete normally
+            // (EventSource sometimes triggers error on close)
+        };
+
+    } catch (error) {
+        showToast('Error starting scraper: ' + error.message, 'error');
+        btn.disabled = false;
+        hideLoading();
+    }
+}
+
+async function generateSummary() {
+    if (!selectedDate) {
+        showToast('Please select a date first', 'warning');
+        return;
+    }
+
+    const btn = document.getElementById('regenerateSummaryBtn');
+    const originalContent = btn.innerHTML;
+
+    // Set loading state
+    btn.disabled = true;
+    btn.innerHTML = '<span class="material-symbols-outlined spin">refresh</span> Generating...';
+
+    try {
+        const country = selectedCountry || 'Global';
+        const dateStr = formatDate(selectedDate);
+
+        // Show user feedback that this might take a moment
+        showToast(`Regenerating analysis for ${country}...`, 'info');
+
+        if (STATIC_MODE) {
+            showToast('Generation is disabled in Static Mode', 'warning');
+            throw new Error('Static Mode');
+        }
+
+        const response = await fetchAPI(`${API_BASE}/api/summarize/${dateStr}?country=${encodeURIComponent(country)}`, {
+            method: 'POST'
+        });
+
+        if (!response.ok) {
+            throw new Error('Failed to regenerate summary');
+        }
+
+        const data = await response.json();
+
+        // Reload data to show new summary
+        await loadCountryOverviewForDate(dateStr);
+        showToast('Analysis updated successfully!', 'success');
+
+    } catch (error) {
+        console.error('Error generating summary:', error);
+        showToast('Failed to generate summary. Please try again.', 'error');
+    } finally {
+        if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = originalContent;
+        }
+    }
+}
 
 // ===== Display Functions =====
 function displayArticles(articles) {
@@ -1404,6 +1495,30 @@ function displaySummary(summaryText) {
     card.classList.remove('hidden');
 }
 
+function displayCountrySummary(summaryText, dateStr) {
+    const summaryCard = document.getElementById('countrySummaryCard');
+    const summaryContent = document.getElementById('countrySummaryContent');
+    const summaryPlaceholder = document.getElementById('generateSummaryPlaceholder');
+    const summaryDateLabel = document.getElementById('summaryDateLabel');
+
+    if (summaryText) {
+        // Show Summary
+        if (summaryCard) summaryCard.classList.remove('hidden');
+        if (summaryPlaceholder) summaryPlaceholder.classList.add('hidden');
+
+        if (summaryContent) summaryContent.innerHTML = marked.parse(summaryText);
+
+        if (summaryDateLabel) {
+            const genDate = new Date(dateStr); // Assuming dateStr is the generation date
+            summaryDateLabel.textContent = `Generated: ${genDate.toLocaleDateString()}`;
+        }
+    } else {
+        // No summary text -> Show Placeholder
+        if (summaryCard) summaryCard.classList.add('hidden');
+        if (summaryPlaceholder) summaryPlaceholder.classList.remove('hidden');
+    }
+}
+
 // ===== UI Helpers =====
 function showLoading(text) {
     document.getElementById('loadingText').textContent = text;
@@ -1444,4 +1559,132 @@ function escapeHtml(unsafe) {
         .replace(/>/g, "&gt;")
         .replace(/"/g, "&quot;")
         .replace(/'/g, "&#039;");
+}
+
+// Regenerate summary for current selection
+// Regenerate summary for current selection
+async function regenerateSummary() {
+    if (!selectedDate) {
+        showToast('Please select a date first', 'warning');
+        return;
+    }
+
+    const btn = document.getElementById('regenerateSummaryBtn');
+    const originalContent = btn.innerHTML;
+
+    // Set loading state
+    btn.disabled = true;
+    btn.innerHTML = '<span class="material-symbols-outlined spin">refresh</span> Generating...';
+
+    try {
+        const country = selectedCountry || 'Global';
+        const dateStr = formatDate(selectedDate);
+
+        // Show user feedback that this might take a moment
+        showToast(`Regenerating analysis for ${country}...`, 'info');
+
+        if (STATIC_MODE) {
+            showToast('Generation is disabled in Static Mode', 'warning');
+            throw new Error('Static Mode');
+        }
+
+        const response = await fetchAPI(`${API_BASE}/api/summarize/${dateStr}?country=${encodeURIComponent(country)}`, {
+            method: 'POST'
+        });
+
+        if (!response.ok) {
+            throw new Error('Failed to regenerate summary');
+        }
+
+        const data = await response.json();
+
+        // Reload data to show new summary
+        await loadCountryOverviewForDate(dateStr);
+        showToast('Analysis updated successfully!', 'success');
+
+    } catch (error) {
+        console.error('Error generating summary:', error);
+        if (error.message !== 'Static Mode') {
+            showToast('Failed to generate summary. Please try again.', 'error');
+        }
+    } finally {
+        if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = originalContent;
+        }
+    }
+}
+
+// ===== Data Handling & Static Mode Support =====
+// STATIC_MODE is auto-injected as true by generate_static_site.py
+if (typeof STATIC_MODE === 'undefined') {
+    var STATIC_MODE = false;
+}
+
+// Helper to fetch data from API (Dynamic) or JSON files (Static)
+async function fetchAPI(endpoint, options) {
+    let url = endpoint;
+    const isFullUrl = endpoint.startsWith('http');
+
+    // Extract relative path if full URL matches API_BASE
+    let relativeEndpoint = endpoint;
+    if (isFullUrl && endpoint.startsWith(API_BASE)) {
+        relativeEndpoint = endpoint.replace(API_BASE, '');
+    }
+
+    if (STATIC_MODE) {
+        // Map dynamic endpoints to static file structure
+        try {
+            // Create a dummy base to parse relative URLs
+            const urlObj = new URL(relativeEndpoint, 'http://dummy.com');
+            const path = urlObj.pathname;
+            const params = new URLSearchParams(urlObj.search);
+
+            // 1. Last Run Date
+            if (path.includes('/api/last-run-date')) {
+                const country = params.get('country') || 'Global';
+                url = `api/last-run-date/${country.replace(/ /g, '_')}.json`;
+            }
+            // 2. Dates List
+            else if (path.includes('/api/dates')) {
+                const country = params.get('country') || 'Global';
+                url = `api/dates/${country.replace(/ /g, '_')}.json`;
+            }
+            // 3. Country Overview (Latest)
+            else if (path.includes('/api/country-overview')) {
+                const country = params.get('country') || 'Global';
+                url = `api/overview/${country.replace(/ /g, '_')}.json`;
+            }
+            // 4. Summary (Specific Date)
+            else if (path.includes('/api/summary')) {
+                // /api/summary/2025-11-01
+                const parts = path.split('/');
+                const date = parts[parts.length - 1];
+                const country = params.get('country') || 'Global';
+                url = `api/summary/${country.replace(/ /g, '_')}/${date}.json`;
+            }
+            // 5. Articles (Specific Date)
+            else if (path.includes('/api/articles')) {
+                const country = params.get('country') || 'Global';
+                const date = params.get('date');
+                url = `api/articles/${country.replace(/ /g, '_')}/${date}.json`;
+            }
+            // 6. Country Sentiments (Map)
+            else if (path.includes('/api/country-sentiments')) {
+                url = `api/country-sentiments.json`;
+            }
+
+            console.log(`[Static] Mapping ${relativeEndpoint} -> ${url}`);
+        } catch (e) {
+            console.warn('[Static] Mapping failed:', e);
+        }
+    } else {
+        // Dynamic Mode: use full URL
+        if (!isFullUrl) {
+            url = `${API_BASE}${endpoint}`;
+        }
+    }
+
+    // Pass options (method, headers, body) to fetch
+    return fetch(url, options);
 }

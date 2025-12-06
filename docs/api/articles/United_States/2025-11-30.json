@@ -1,0 +1,32 @@
+[
+  {
+    "id": 99,
+    "title": "United States GDP 1990-2024",
+    "url": "https://www.statista.com/statistics/188105/annual-gdp-of-the-united-states-since-1990/",
+    "source": "www.statista.com",
+    "description": "Expert resources to inform and inspire.\n\nSee why Statista is the trusted choice for reliable data and insights. We provide one platform to simplify research and support your strategic decisions. Learn more\n\nStatista R identifies and awards industry leaders, top providers, and exceptional brands thro...",
+    "category": "Economy",
+    "country": "United States",
+    "published_date": "2025-11-30"
+  },
+  {
+    "id": 108,
+    "title": "Given the United States’ New Tariff Policy, Latin American and Caribbean Countries Should Diversify their Trade Relations and Strengthen Regional Integration",
+    "url": "https://www.cepal.org/en/pressreleases/given-united-states-new-tariff-policy-latin-american-and-caribbean-countries-should",
+    "source": "www.cepal.org",
+    "description": "Given the shift in United States trade policy this year, governments in the region should diversify their trade relations and strengthen regional integration, according to the latest annual report by the Economic Commission for Latin America and the Caribbean (ECLAC) on the region’s trade performanc...",
+    "category": "Trade Policy",
+    "country": "United States",
+    "published_date": "2025-11-30"
+  },
+  {
+    "id": 109,
+    "title": "United States expands use of tariffs in response to labor and human rights concerns abroad",
+    "url": "https://www.whitecase.com/insight-alert/united-states-expands-use-tariffs-response-labor-and-human-rights-concerns-abroad",
+    "source": "www.whitecase.com",
+    "description": "US trade restrictions targeting labor rights concerns in foreign countries and their potential effects on US competitiveness have expanded again in recent months, widening the field of trade risks companies must consider. The Trump administration is raising labor rights concerns as a basis for trade...",
+    "category": "Trade Policy",
+    "country": "United States",
+    "published_date": "2025-11-30"
+  }
+]

@@ -104,6 +104,18 @@ function setupEventListeners() {
         });
     }
 
+    // Regenerate Summary button
+    const regenBtn = document.getElementById('regenerateSummaryBtn');
+    if (regenBtn) {
+        regenBtn.addEventListener('click', regenerateSummary);
+    }
+
+    // Create Summary button (Placeholder)
+    const createBtn = document.getElementById('createSummaryBtn');
+    if (createBtn) {
+        createBtn.addEventListener('click', regenerateSummary); // Reuse same function
+    }
+
     // Close suggestions when clicking outside
     document.addEventListener('click', (e) => {
         if (!e.target.closest('.search-container')) {
@@ -247,23 +259,89 @@ function handleDatePickerChange(e) {
 
 // Load country overview for a specific date
 async function loadCountryOverviewForDate(dateStr) {
+    if (!dateStr) return;
+
+    // Show loading state
+    const summaryContent = document.getElementById('countrySummaryContent');
+    if (summaryContent) {
+        summaryContent.innerHTML = '<div class="loading-spinner"><span class="material-symbols-outlined spin">refresh</span> Loading analysis...</div>';
+    }
+
     try {
-        // Load summary for specific date
-        const summaryResponse = await fetch(`${API_BASE}/api/summary/${dateStr}?country=${encodeURIComponent(selectedCountry)}`);
-        if (summaryResponse.ok) {
-            const summary = await summaryResponse.json();
+        const country = selectedCountry || 'Global';
+        // Use the country-overview endpoint which might support date filtering, 
+        // OR use separate endpoints. 
+        // Based on backend/main.py (Step 686), /api/country-overview takes 'country' but gets LATEST date.
+        // We need specific date. 
+        // Creating parallel fetch for summary and articles is safer if overview doesn't support date.
 
-            // Update the country summary card
-            const summaryCard = document.getElementById('countrySummaryCard');
-            const summaryContent = summaryCard.querySelector('.summary-content');
+        // 1. Fetch Summary
+        const summaryPromise = fetchAPI(`/api/summary/${dateStr}?country=${encodeURIComponent(country)}`);
 
-            if (summaryContent && summary.summary_text) {
-                summaryContent.innerHTML = marked.parse(summary.summary_text);
-                summaryCard.classList.remove('hidden');
+        // 2. Fetch Articles (need endpoint for this)
+        // Backend main.py (Step 686) showed get_country_overview uses get_articles_by_date.
+        // Let's assume we can GET /api/articles?date=... or similar?
+        // Actually, let's use the pattern from the other logic block: fetch articles separately.
+        const articlesPromise = fetchAPI(`/api/articles?date=${dateStr}&country=${encodeURIComponent(country)}`);
+
+        const [summaryRes, articlesRes] = await Promise.all([summaryPromise, articlesPromise]);
+
+        // Handle Summary
+        const summaryCard = document.getElementById('countrySummaryCard');
+        const summaryPlaceholder = document.getElementById('generateSummaryPlaceholder');
+        const summaryDateLabel = document.getElementById('summaryDateLabel');
+
+        if (summaryRes.ok) {
+            const summary = await summaryRes.json();
+            if (summary && summary.summary_text) {
+                // Show Summary
+                if (summaryCard) summaryCard.classList.remove('hidden');
+                if (summaryPlaceholder) summaryPlaceholder.classList.add('hidden');
+
+                if (summaryContent) summaryContent.innerHTML = marked.parse(summary.summary_text);
+
+                if (summary.generated_at && summaryDateLabel) {
+                    const genDate = new Date(summary.generated_at);
+                    summaryDateLabel.textContent = `Generated: ${genDate.toLocaleDateString()}`;
+                }
+            } else {
+                // No summary text -> Show Placeholder
+                if (summaryCard) summaryCard.classList.add('hidden');
+                if (summaryPlaceholder) summaryPlaceholder.classList.remove('hidden');
+            }
+        } else {
+            // Error or 404 -> Show Placeholder
+            if (summaryCard) summaryCard.classList.add('hidden');
+            if (summaryPlaceholder) summaryPlaceholder.classList.remove('hidden');
+        }
+
+        // Handle Articles
+        let articleCount = 0;
+        if (articlesRes.ok) {
+            const articles = await articlesRes.json();
+            articleCount = articles.length;
+            displayCountryArticles(articles);
+        } else {
+            displayCountryArticles([]);
+        }
+
+        // Update placeholder button state based on articles
+        const createBtn = document.getElementById('createSummaryBtn');
+        if (createBtn && summaryPlaceholder && !summaryPlaceholder.classList.contains('hidden')) {
+            if (articleCount === 0) {
+                createBtn.disabled = true;
+                createBtn.innerHTML = '<span class="material-symbols-outlined">block</span> No Articles to Analyze';
+                createBtn.title = "Cannot generate summary without articles";
+            } else {
+                createBtn.disabled = false;
+                createBtn.innerHTML = '<span class="material-symbols-outlined">auto_awesome</span> Generate Summary';
+                createBtn.title = "";
             }
         }
+
     } catch (error) {
-        console.error('Error loading summary for date:', error);
+        console.error('Error loading country overview:', error);
+        showToast('Failed to load data', 'error');
     }
 }
 
@@ -419,7 +497,7 @@ function setMapLoading(loading, message = 'Analyzing global sentiment...') {
 // Fetch country sentiments from API
 async function fetchCountrySentiments() {
     try {
-        const response = await fetch(`${API_BASE}/api/country-sentiments`);
+        const response = await fetchAPI('/api/country-sentiments');
         if (response.ok) {
             countrySentiments = await response.json();
             console.log('Loaded sentiment data for', Object.keys(countrySentiments).length, 'countries');
@@ -1057,7 +1135,7 @@ let articleCounts = {}; // Store article counts per date
 
 async function loadLastRunDate() {
     try {
-        const response = await fetch(`${API_BASE}/api/last-run-date?country=${encodeURIComponent(selectedCountry)}`);
+        const response = await fetchAPI(`/api/last-run-date?country=${encodeURIComponent(selectedCountry)}`);
         if (!response.ok) throw new Error('Failed to load last run date');
 
         const data = await response.json();
@@ -1081,131 +1159,56 @@ async function loadLastRunDate() {
 
 async function loadCountryOverview() {
     try {
-        const response = await fetch(`${API_BASE}/api/country-overview?country=${encodeURIComponent(selectedCountry)}`);
+        const response = await fetchAPI(`/api/country-overview?country=${encodeURIComponent(selectedCountry)}`);
         if (!response.ok) throw new Error('Failed to load country overview');
 
         const data = await response.json();
-        console.log('Country overview data:', data);
-        console.log('Has last_run_date:', !!data.last_run_date);
-        console.log('Articles length:', data.articles ? data.articles.length : 0);
-        console.log('Has summary:', !!data.summary);
 
         const overviewEl = document.getElementById('countryOverview');
+        overviewEl.classList.remove('hidden');
 
-        if (data.last_run_date && (data.articles.length > 0 || data.summary)) {
-            console.log('✅ Condition met - showing data');
-            // Show overview section
-            overviewEl.classList.remove('hidden');
-
+        if (data.last_run_date) {
             // Set date picker to the latest month
             const latestDate = new Date(data.last_run_date);
             const year = latestDate.getFullYear();
             const month = String(latestDate.getMonth() + 1).padStart(2, '0');
+            const dateStr = `${year}-${month}-${String(latestDate.getDate()).padStart(2, '0')}`;
+
             const datePicker = document.getElementById('datePicker');
             datePicker.value = `${year}-${month}`;
-            console.log('Set date picker to:', datePicker.value);
 
-            // Display summary if available
-            if (data.summary && data.summary.summary_text) {
-                console.log('Displaying summary');
-                displayCountrySummary(data.summary.summary_text, data.last_run_date);
-            } else {
-                console.log('No summary - hiding summary card');
-                document.getElementById('countrySummaryCard').classList.add('hidden');
-            }
+            selectedDate = latestDate; // Update global state
 
-            // Display articles
-            if (data.articles && data.articles.length > 0) {
-                console.log('Displaying', data.articles.length, 'articles');
-                displayCountryArticles(data.articles);
-            } else {
-                console.log('No articles - hiding articles section');
-                document.getElementById('countryArticlesSection').classList.add('hidden');
-            }
+            // Reuse the main loading logic which handles everything correctly
+            await loadCountryOverviewForDate(data.last_run_date);
+
         } else {
-            console.log('❌ Condition NOT met - showing no data message');
-            // No data yet - set date picker to current month and show message
+            // No data yet - set date picker to current month and show empty state
             const today = new Date();
             const year = today.getFullYear();
             const month = String(today.getMonth() + 1).padStart(2, '0');
             const datePicker = document.getElementById('datePicker');
             datePicker.value = `${year}-${month}`;
 
-            // Show overview with a message
-            overviewEl.classList.remove('hidden');
+            selectedDate = today;
 
-            // Show message in summary card
-            const summaryCard = document.getElementById('countrySummaryCard');
-            summaryCard.classList.remove('hidden');
-            const summaryContent = document.getElementById('countrySummaryContent');
-            summaryContent.innerHTML = `
-                <div style="text-align: center; padding: 40px 20px;">
-                    <span class="material-symbols-outlined" style="font-size: 64px; color: var(--md-sys-color-on-surface-variant); margin-bottom: 16px;">info</span>
-                    <h3 style="margin-bottom: 12px; color: var(--md-sys-color-on-surface);">No Data Available</h3>
-                    <p style="color: var(--md-sys-color-on-surface-variant); margin-bottom: 24px;">
-                        No economic data has been scraped for ${selectedCountry} yet.
-                    </p>
-                    <p style="color: var(--md-sys-color-on-surface-variant);">
-                        Click the <strong>"Refresh Now"</strong> button in the header to scrape the latest news and economic data.
-                    </p>
-                </div>
-            `;
-
-            // Hide articles section
-            document.getElementById('countryArticlesSection').classList.add('hidden');
+            // Trigger load with today's date to show the "No Data" placeholder
+            const dateStr = `${year}-${month}-${String(today.getDate()).padStart(2, '0')}`;
+            await loadCountryOverviewForDate(dateStr);
         }
     } catch (error) {
         console.error('Error loading country overview:', error);
 
-        // On error, still set date picker to current month
+        // Fallback
         const today = new Date();
         const year = today.getFullYear();
         const month = String(today.getMonth() + 1).padStart(2, '0');
-        const datePicker = document.getElementById('datePicker');
-        datePicker.value = `${year}-${month}`;
-
-        document.getElementById('countryOverview').classList.add('hidden');
+        document.getElementById('datePicker').value = `${year}-${month}`;
+        document.getElementById('countryOverview').classList.remove('hidden');
     }
 }
 
-function displayCountrySummary(summaryText, dateStr) {
-    const card = document.getElementById('countrySummaryCard');
-    const content = document.getElementById('countrySummaryContent');
-    const dateLabel = document.getElementById('summaryDateLabel');
 
-    // Set date label
-    if (dateStr) {
-        const date = new Date(dateStr);
-        const options = { year: 'numeric', month: 'long', day: 'numeric' };
-        dateLabel.textContent = date.toLocaleDateString('en-US', options);
-    }
-
-    // Configure marked.js options
-    marked.setOptions({
-        breaks: true,
-        gfm: true,
-        headerIds: true,
-        mangle: false,
-        highlight: function (code, lang) {
-            if (lang && hljs.getLanguage(lang)) {
-                try {
-                    return hljs.highlight(code, { language: lang }).value;
-                } catch (err) { }
-            }
-            return hljs.highlightAuto(code).value;
-        }
-    });
-
-    // Parse Markdown to HTML
-    content.innerHTML = marked.parse(summaryText);
-
-    // Highlight code blocks
-    content.querySelectorAll('pre code').forEach((block) => {
-        hljs.highlightElement(block);
-    });
-
-    card.classList.remove('hidden');
-}
 
 function displayCountryArticles(articles) {
     const container = document.getElementById('countryArticlesList');
@@ -1234,7 +1237,7 @@ function displayCountryArticles(articles) {
 
 async function loadAvailableDates() {
     try {
-        const response = await fetch(`${API_BASE}/api/dates?country=${encodeURIComponent(selectedCountry)}`);
+        const response = await fetchAPI(`/api/dates?country=${encodeURIComponent(selectedCountry)}`);
         if (!response.ok) throw new Error('Failed to load dates');
 
         const dates = await response.json();
@@ -1255,27 +1258,27 @@ async function loadDailyData(date) {
     showLoading('Loading articles...');
 
     try {
-        // Load articles
-        const articlesResponse = await fetch(`${API_BASE}/api/articles/${dateStr}?country=${encodeURIComponent(selectedCountry)}`);
-        if (!articlesResponse.ok) throw new Error('Failed to load articles');
-
-        const articles = await articlesResponse.json();
-        displayArticles(articles);
-
-        // Try to load summary
+        // Load daily signals
         try {
-            const summaryResponse = await fetch(`${API_BASE}/api/summary/${dateStr}?country=${encodeURIComponent(selectedCountry)}`);
+            const articlesResponse = await fetchAPI(`/api/articles?date=${dateStr}&country=${encodeURIComponent(selectedCountry)}`);
+            if (articlesResponse.ok) {
+                const articles = await articlesResponse.json();
+                displayCountryArticles(articles);
+            }
+        } catch (e) { console.error(e); }
+
+        // Load daily summary
+        try {
+            const summaryResponse = await fetchAPI(`/api/summary/${dateStr}?country=${encodeURIComponent(selectedCountry)}`);
             if (summaryResponse.ok) {
                 const summary = await summaryResponse.json();
-                displaySummary(summary.summary_text);
+                displayCountrySummary(summary.summary_text, dateStr);
             } else {
-                // No summary yet
-                document.getElementById('summaryCard').classList.add('hidden');
+                document.getElementById('countrySummaryCard').classList.add('hidden');
             }
         } catch (e) {
-            document.getElementById('summaryCard').classList.add('hidden');
+            document.getElementById('countrySummaryCard').classList.add('hidden');
         }
-
     } catch (error) {
         showToast('Error loading daily data: ' + error.message, 'error');
     } finally {
@@ -1285,8 +1288,19 @@ async function loadDailyData(date) {
 
 async function scrapeNews() {
     const btn = document.getElementById('scrapeBtn');
+    const originalText = btn.innerHTML; // Store original text to restore later
     btn.disabled = true;
+
+    if (STATIC_MODE) {
+        showToast('Refresh is not available in Demo Mode', 'warning');
+        btn.innerHTML = originalText;
+        btn.disabled = false;
+        return;
+    }
+
     showLoading(`Initializing scraper for ${selectedCountry}...`);
+    showToast('Refreshing data... this may take a minute', 'info');
+
 
     const loadingText = document.getElementById('loadingText');
     const logContainer = document.createElement('div');
@@ -1312,7 +1326,7 @@ async function scrapeNews() {
                 if (data.articles_added > 0) {
                     try {
                         // Generate summary in background
-                        fetch(`${API_BASE}/api/summarize/${todayStr}?country=${encodeURIComponent(selectedCountry)}`, {
+                        fetchAPI(`${API_BASE}/api/summarize/${todayStr}?country=${encodeURIComponent(selectedCountry)}`, {
                             method: 'POST'
                         }).catch(err => console.error('Summary generation started in background'));
 
@@ -1380,29 +1394,52 @@ async function scrapeNews() {
 }
 
 async function generateSummary() {
-    if (!selectedDate) return;
+    if (!selectedDate) {
+        showToast('Please select a date first', 'warning');
+        return;
+    }
 
-    const dateStr = formatDate(selectedDate);
-    const btn = document.getElementById('generateSummaryBtn');
+    const btn = document.getElementById('regenerateSummaryBtn');
+    const originalContent = btn.innerHTML;
+
+    // Set loading state
     btn.disabled = true;
-    showLoading('Generating AI summary... This may take 1-2 minutes');
+    btn.innerHTML = '<span class="material-symbols-outlined spin">refresh</span> Generating...';
 
     try {
-        const response = await fetch(`${API_BASE}/api/summarize/${dateStr}?country=${encodeURIComponent(selectedCountry)}`, {
+        const country = selectedCountry || 'Global';
+        const dateStr = formatDate(selectedDate);
+
+        // Show user feedback that this might take a moment
+        showToast(`Regenerating analysis for ${country}...`, 'info');
+
+        if (STATIC_MODE) {
+            showToast('Generation is disabled in Static Mode', 'warning');
+            throw new Error('Static Mode');
+        }
+
+        const response = await fetchAPI(`${API_BASE}/api/summarize/${dateStr}?country=${encodeURIComponent(country)}`, {
             method: 'POST'
         });
 
-        if (!response.ok) throw new Error('Failed to generate summary');
+        if (!response.ok) {
+            throw new Error('Failed to regenerate summary');
+        }
 
-        const summary = await response.json();
-        displaySummary(summary.summary_text);
-        showToast('✓ Summary generated successfully!', 'success');
+        const data = await response.json();
+
+        // Reload data to show new summary
+        await loadCountryOverviewForDate(dateStr);
+        showToast('Analysis updated successfully!', 'success');
 
     } catch (error) {
-        showToast('Error generating summary: ' + error.message, 'error');
+        console.error('Error generating summary:', error);
+        showToast('Failed to generate summary. Please try again.', 'error');
     } finally {
-        btn.disabled = false;
-        hideLoading();
+        if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = originalContent;
+        }
     }
 }
 
@@ -1457,6 +1494,30 @@ function displaySummary(summaryText) {
     card.classList.remove('hidden');
 }
 
+function displayCountrySummary(summaryText, dateStr) {
+    const summaryCard = document.getElementById('countrySummaryCard');
+    const summaryContent = document.getElementById('countrySummaryContent');
+    const summaryPlaceholder = document.getElementById('generateSummaryPlaceholder');
+    const summaryDateLabel = document.getElementById('summaryDateLabel');
+
+    if (summaryText) {
+        // Show Summary
+        if (summaryCard) summaryCard.classList.remove('hidden');
+        if (summaryPlaceholder) summaryPlaceholder.classList.add('hidden');
+
+        if (summaryContent) summaryContent.innerHTML = marked.parse(summaryText);
+
+        if (summaryDateLabel) {
+            const genDate = new Date(dateStr); // Assuming dateStr is the generation date
+            summaryDateLabel.textContent = `Generated: ${genDate.toLocaleDateString()}`;
+        }
+    } else {
+        // No summary text -> Show Placeholder
+        if (summaryCard) summaryCard.classList.add('hidden');
+        if (summaryPlaceholder) summaryPlaceholder.classList.remove('hidden');
+    }
+}
+
 // ===== UI Helpers =====
 function showLoading(text) {
     document.getElementById('loadingText').textContent = text;
@@ -1497,4 +1558,132 @@ function escapeHtml(unsafe) {
         .replace(/>/g, "&gt;")
         .replace(/"/g, "&quot;")
         .replace(/'/g, "&#039;");
+}
+
+// Regenerate summary for current selection
+// Regenerate summary for current selection
+async function regenerateSummary() {
+    if (!selectedDate) {
+        showToast('Please select a date first', 'warning');
+        return;
+    }
+
+    const btn = document.getElementById('regenerateSummaryBtn');
+    const originalContent = btn.innerHTML;
+
+    // Set loading state
+    btn.disabled = true;
+    btn.innerHTML = '<span class="material-symbols-outlined spin">refresh</span> Generating...';
+
+    try {
+        const country = selectedCountry || 'Global';
+        const dateStr = formatDate(selectedDate);
+
+        // Show user feedback that this might take a moment
+        showToast(`Regenerating analysis for ${country}...`, 'info');
+
+        if (STATIC_MODE) {
+            showToast('Generation is disabled in Static Mode', 'warning');
+            throw new Error('Static Mode');
+        }
+
+        const response = await fetchAPI(`${API_BASE}/api/summarize/${dateStr}?country=${encodeURIComponent(country)}`, {
+            method: 'POST'
+        });
+
+        if (!response.ok) {
+            throw new Error('Failed to regenerate summary');
+        }
+
+        const data = await response.json();
+
+        // Reload data to show new summary
+        await loadCountryOverviewForDate(dateStr);
+        showToast('Analysis updated successfully!', 'success');
+
+    } catch (error) {
+        console.error('Error generating summary:', error);
+        if (error.message !== 'Static Mode') {
+            showToast('Failed to generate summary. Please try again.', 'error');
+        }
+    } finally {
+        if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = originalContent;
+        }
+    }
+}
+
+// ===== Data Handling & Static Mode Support =====
+// STATIC_MODE is auto-injected as true by generate_static_site.py
+if (typeof STATIC_MODE === 'undefined') {
+    var STATIC_MODE = false;
+}
+
+// Helper to fetch data from API (Dynamic) or JSON files (Static)
+async function fetchAPI(endpoint, options) {
+    let url = endpoint;
+    const isFullUrl = endpoint.startsWith('http');
+
+    // Extract relative path if full URL matches API_BASE
+    let relativeEndpoint = endpoint;
+    if (isFullUrl && endpoint.startsWith(API_BASE)) {
+        relativeEndpoint = endpoint.replace(API_BASE, '');
+    }
+
+    if (STATIC_MODE) {
+        // Map dynamic endpoints to static file structure
+        try {
+            // Create a dummy base to parse relative URLs
+            const urlObj = new URL(relativeEndpoint, 'http://dummy.com');
+            const path = urlObj.pathname;
+            const params = new URLSearchParams(urlObj.search);
+
+            // 1. Last Run Date
+            if (path.includes('/api/last-run-date')) {
+                const country = params.get('country') || 'Global';
+                url = `api/last-run-date/${country.replace(/ /g, '_')}.json`;
+            }
+            // 2. Dates List
+            else if (path.includes('/api/dates')) {
+                const country = params.get('country') || 'Global';
+                url = `api/dates/${country.replace(/ /g, '_')}.json`;
+            }
+            // 3. Country Overview (Latest)
+            else if (path.includes('/api/country-overview')) {
+                const country = params.get('country') || 'Global';
+                url = `api/overview/${country.replace(/ /g, '_')}.json`;
+            }
+            // 4. Summary (Specific Date)
+            else if (path.includes('/api/summary')) {
+                // /api/summary/2025-11-01
+                const parts = path.split('/');
+                const date = parts[parts.length - 1];
+                const country = params.get('country') || 'Global';
+                url = `api/summary/${country.replace(/ /g, '_')}/${date}.json`;
+            }
+            // 5. Articles (Specific Date)
+            else if (path.includes('/api/articles')) {
+                const country = params.get('country') || 'Global';
+                const date = params.get('date');
+                url = `api/articles/${country.replace(/ /g, '_')}/${date}.json`;
+            }
+            // 6. Country Sentiments (Map)
+            else if (path.includes('/api/country-sentiments')) {
+                url = `api/country-sentiments.json`;
+            }
+
+            console.log(`[Static] Mapping ${relativeEndpoint} -> ${url}`);
+        } catch (e) {
+            console.warn('[Static] Mapping failed:', e);
+        }
+    } else {
+        // Dynamic Mode: use full URL
+        if (!isFullUrl) {
+            url = `${API_BASE}${endpoint}`;
+        }
+    }
+
+    // Pass options (method, headers, body) to fetch
+    return fetch(url, options);
 }

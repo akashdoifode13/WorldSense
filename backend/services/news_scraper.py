@@ -93,6 +93,15 @@ class NewsScraper:
                             yield {"status": "visiting", "message": f"Analyzed {domain}{path}", "url": real_url}
 
                             if article_data:
+                                # Strict Filtering: Title MUST contain country name if country is provided
+                                if country != "Global":
+                                    title_lower = article_data['title'].lower()
+                                    country_lower = country.lower()
+                                    
+                                    if country_lower not in title_lower:
+                                        yield {"status": "skipped", "message": f"Skipped: Title missing country name '{country}'"}
+                                        continue
+
                                 raw_date = article_data.get('published_date')
                                 if not raw_date:
                                     raw_date = target_date

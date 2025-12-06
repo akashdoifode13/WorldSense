@@ -182,18 +182,7 @@ async def get_articles(date: date, country: str = "Global", db: Session = Depend
     return articles
 
 
-@app.get("/api/summary/{date}", response_model=SummaryResponse)
-async def get_summary(date: date, country: str = "Global", db: Session = Depends(get_db)):
-    """Get daily summary for a specific date and country."""
-    summary = summarizer.get_summary_by_date(db, date, country)
-    
-    if not summary:
-        raise HTTPException(
-            status_code=404, 
-            detail=f"No summary found for {date}. Try generating one first."
-        )
-    
-    return summary
+
 
 
 from fastapi.responses import FileResponse, StreamingResponse
@@ -302,6 +291,34 @@ def scrape_and_summarize(
     }
 
 
+
+
+@app.get("/api/articles", response_model=List[ArticleResponse])
+async def get_articles(date: date, country: str = "Global", db: Session = Depends(get_db)):
+    """
+    Get articles for a specific date and country.
+    """
+    articles = scraper.get_articles_by_date(db, date, country)
+    return articles
+
+
+@app.get("/api/summary/{date}", response_model=SummaryResponse)
+async def get_summary(date: date, country: str = "Global", db: Session = Depends(get_db)):
+    """
+    Get summary for a specific date and country.
+    """
+    summary = summarizer.get_summary_by_date(db, date, country)
+    if not summary:
+        # Return empty response instead of 404 to handle frontend gracefully
+        return {
+            "id": 0,
+            "date": date,
+            "country": country,
+            "summary_text": "",
+            "article_count": 0,
+            "generated_at": datetime.now()
+        }
+    return summary
 @app.get("/api/country-overview")
 async def get_country_overview(country: str = "Global", db: Session = Depends(get_db)):
     """
