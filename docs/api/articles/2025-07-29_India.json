@@ -1,0 +1,12 @@
+[
+  {
+    "id": 35,
+    "title": "How Nippon India Mutual Fund improved the accuracy of AI assistant responses using advanced RAG methods on Amazon Bedrock",
+    "url": "https://aws.amazon.com/blogs/machine-learning/how-nippon-india-mutual-fund-improved-the-accuracy-of-ai-assistant-responses-using-advanced-rag-methods-on-amazon-bedrock/",
+    "source": "aws.amazon.com",
+    "description": "This post is co-written with Abhinav Pandey from Nippon Life India Asset Management Ltd.\n\nAccurate information retrieval through generative AI-powered assistants is a popular use case for enterprises. To reduce hallucination and improve overall accuracy, Retrieval Augmented Generation (RAG) remains ...",
+    "category": "Machine Learning",
+    "country": "India",
+    "published_date": "2025-07-29"
+  }
+]

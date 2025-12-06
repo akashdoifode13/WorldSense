@@ -1,0 +1,1166 @@
+{
+  "Afghanistan": {
+    "score": 0.129,
+    "color": "#86efac",
+    "label": "Slightly Positive",
+    "date": "2025-12-01"
+  },
+  "Albania": {
+    "score": -0.064,
+    "color": "#f87171",
+    "label": "Slightly Negative",
+    "date": "2025-12-01"
+  },
+  "Algeria": {
+    "score": 0.174,
+    "color": "#86efac",
+    "label": "Slightly Positive",
+    "date": "2025-12-01"
+  },
+  "Andorra": {
+    "score": 0.486,
+    "color": "#22c55e",
+    "label": "Positive",
+    "date": "2025-12-01"
+  },
+  "Angola": {
+    "score": 0.057,
+    "color": "#86efac",
+    "label": "Slightly Positive",
+    "date": "2025-12-01"
+  },
+  "Antigua and Barbuda": {
+    "score": -0.185,
+    "color": "#f87171",
+    "label": "Slightly Negative",
+    "date": "2025-12-01"
+  },
+  "Argentina": {
+    "score": 0.066,
+    "color": "#86efac",
+    "label": "Slightly Positive",
+    "date": "2025-12-01"
+  },
+  "Armenia": {
+    "score": 0.017,
+    "color": "#86efac",
+    "label": "Slightly Positive",
+    "date": "2025-12-01"
+  },
+  "Australia": {
+    "score": 0.028,
+    "color": "#86efac",
+    "label": "Slightly Positive",
+    "date": "2025-12-01"
+  },
+  "Austria": {
+    "score": -0.175,
+    "color": "#f87171",
+    "label": "Slightly Negative",
+    "date": "2025-12-01"
+  },
+  "Azerbaijan": {
+    "score": 0.051,
+    "color": "#86efac",
+    "label": "Slightly Positive",
+    "date": "2025-12-01"
+  },
+  "Bahamas": {
+    "score": 0.328,
+    "color": "#4ade80",
+    "label": "Positive",
+    "date": "2025-12-01"
+  },
+  "Bahrain": {
+    "score": -0.071,
+    "color": "#f87171",
+    "label": "Slightly Negative",
+    "date": "2025-12-01"
+  },
+  "Bangladesh": {
+    "score": -0.129,
+    "color": "#f87171",
+    "label": "Slightly Negative",
+    "date": "2025-12-01"
+  },
+  "Barbados": {
+    "score": 0.211,
+    "color": "#4ade80",
+    "label": "Slightly Positive",
+    "date": "2025-12-01"
+  },
+  "Belarus": {
+    "score": -0.019,
+    "color": "#f87171",
+    "label": "Slightly Negative",
+    "date": "2025-12-01"
+  },
+  "Belgium": {
+    "score": -0.042,
+    "color": "#f87171",
+    "label": "Slightly Negative",
+    "date": "2025-12-01"
+  },
+  "Belize": {
+    "score": 0.077,
+    "color": "#86efac",
+    "label": "Slightly Positive",
+    "date": "2025-12-01"
+  },
+  "Benin": {
+    "score": 0.219,
+    "color": "#4ade80",
+    "label": "Slightly Positive",
+    "date": "2025-12-01"
+  },
+  "Bhutan": {
+    "score": 0.274,
+    "color": "#4ade80",
+    "label": "Slightly Positive",
+    "date": "2025-12-01"
+  },
+  "Bolivia": {
+    "score": 0.108,
+    "color": "#86efac",
+    "label": "Slightly Positive",
+    "date": "2025-12-01"
+  },
+  "Bosnia and Herzegovina": {
+    "score": 0.181,
+    "color": "#86efac",
+    "label": "Slightly Positive",
+    "date": "2025-12-01"
+  },
+  "Botswana": {
+    "score": 0.311,
+    "color": "#4ade80",
+    "label": "Positive",
+    "date": "2025-12-01"
+  },
+  "Brazil": {
+    "score": 0.027,
+    "color": "#86efac",
+    "label": "Slightly Positive",
+    "date": "2025-12-01"
+  },
+  "Brunei": {
+    "score": 0.196,
+    "color": "#86efac",
+    "label": "Slightly Positive",
+    "date": "2025-12-01"
+  },
+  "Bulgaria": {
+    "score": -0.232,
+    "color": "#ef4444",
+    "label": "Slightly Negative",
+    "date": "2025-12-01"
+  },
+  "Burkina Faso": {
+    "score": 0.293,
+    "color": "#4ade80",
+    "label": "Slightly Positive",
+    "date": "2025-12-01"
+  },
+  "Burundi": {
+    "score": 0.359,
+    "color": "#4ade80",
+    "label": "Positive",
+    "date": "2025-12-01"
+  },
+  "Cabo Verde": {
+    "score": 0.224,
+    "color": "#4ade80",
+    "label": "Slightly Positive",
+    "date": "2025-12-01"
+  },
+  "Cambodia": {
+    "score": -0.131,
+    "color": "#f87171",
+    "label": "Slightly Negative",
+    "date": "2025-12-01"
+  },
+  "Cameroon": {
+    "score": 0.148,
+    "color": "#86efac",
+    "label": "Slightly Positive",
+    "date": "2025-12-01"
+  },
+  "Canada": {
+    "score": 0.069,
+    "color": "#86efac",
+    "label": "Slightly Positive",
+    "date": "2025-12-01"
+  },
+  "Central African Republic": {
+    "score": 0.211,
+    "color": "#4ade80",
+    "label": "Slightly Positive",
+    "date": "2025-12-01"
+  },
+  "Chad": {
+    "score": -0.056,
+    "color": "#f87171",
+    "label": "Slightly Negative",
+    "date": "2025-12-01"
+  },
+  "Chile": {
+    "score": -0.301,
+    "color": "#ef4444",
+    "label": "Negative",
+    "date": "2025-12-01"
+  },
+  "China": {
+    "score": -0.146,
+    "color": "#f87171",
+    "label": "Slightly Negative",
+    "date": "2025-12-01"
+  },
+  "Colombia": {
+    "score": 0.064,
+    "color": "#86efac",
+    "label": "Slightly Positive",
+    "date": "2025-12-01"
+  },
+  "Comoros": {
+    "score": -0.077,
+    "color": "#f87171",
+    "label": "Slightly Negative",
+    "date": "2025-12-01"
+  },
+  "Congo (Congo-Brazzaville)": {
+    "score": -0.076,
+    "color": "#f87171",
+    "label": "Slightly Negative",
+    "date": "2025-12-01"
+  },
+  "Costa Rica": {
+    "score": 0.121,
+    "color": "#86efac",
+    "label": "Slightly Positive",
+    "date": "2025-12-01"
+  },
+  "Croatia": {
+    "score": 0.266,
+    "color": "#4ade80",
+    "label": "Slightly Positive",
+    "date": "2025-12-01"
+  },
+  "Cuba": {
+    "score": 0.125,
+    "color": "#86efac",
+    "label": "Slightly Positive",
+    "date": "2025-12-01"
+  },
+  "Cyprus": {
+    "score": 0.031,
+    "color": "#86efac",
+    "label": "Slightly Positive",
+    "date": "2025-12-01"
+  },
+  "Czech Republic": {
+    "score": 0.152,
+    "color": "#86efac",
+    "label": "Slightly Positive",
+    "date": "2025-12-01"
+  },
+  "Democratic Republic of the Congo": {
+    "score": -0.002,
+    "color": "#f87171",
+    "label": "Slightly Negative",
+    "date": "2025-12-01"
+  },
+  "Denmark": {
+    "score": 0.119,
+    "color": "#86efac",
+    "label": "Slightly Positive",
+    "date": "2025-12-01"
+  },
+  "Djibouti": {
+    "score": -0.067,
+    "color": "#f87171",
+    "label": "Slightly Negative",
+    "date": "2025-12-01"
+  },
+  "Dominica": {
+    "score": 0.048,
+    "color": "#86efac",
+    "label": "Slightly Positive",
+    "date": "2025-12-01"
+  },
+  "Dominican Republic": {
+    "score": -0.219,
+    "color": "#ef4444",
+    "label": "Slightly Negative",
+    "date": "2025-12-01"
+  },
+  "Ecuador": {
+    "score": 0.045,
+    "color": "#86efac",
+    "label": "Slightly Positive",
+    "date": "2025-12-01"
+  },
+  "Egypt": {
+    "score": 0.26,
+    "color": "#4ade80",
+    "label": "Slightly Positive",
+    "date": "2025-12-01"
+  },
+  "El Salvador": {
+    "score": 0.142,
+    "color": "#86efac",
+    "label": "Slightly Positive",
+    "date": "2025-12-01"
+  },
+  "Equatorial Guinea": {
+    "score": -0.003,
+    "color": "#f87171",
+    "label": "Slightly Negative",
+    "date": "2025-12-01"
+  },
+  "Eritrea": {
+    "score": -0.062,
+    "color": "#f87171",
+    "label": "Slightly Negative",
+    "date": "2025-12-01"
+  },
+  "Estonia": {
+    "score": 0.097,
+    "color": "#86efac",
+    "label": "Slightly Positive",
+    "date": "2025-12-01"
+  },
+  "Eswatini": {
+    "score": 0.204,
+    "color": "#4ade80",
+    "label": "Slightly Positive",
+    "date": "2025-12-01"
+  },
+  "Ethiopia": {
+    "score": 0.434,
+    "color": "#22c55e",
+    "label": "Positive",
+    "date": "2025-12-01"
+  },
+  "Fiji": {
+    "score": 0.144,
+    "color": "#86efac",
+    "label": "Slightly Positive",
+    "date": "2025-12-01"
+  },
+  "Finland": {
+    "score": 0.009,
+    "color": "#86efac",
+    "label": "Slightly Positive",
+    "date": "2025-12-01"
+  },
+  "France": {
+    "score": -0.066,
+    "color": "#f87171",
+    "label": "Slightly Negative",
+    "date": "2025-12-01"
+  },
+  "Gabon": {
+    "score": -0.339,
+    "color": "#ef4444",
+    "label": "Negative",
+    "date": "2025-12-01"
+  },
+  "Gambia": {
+    "score": 0.48,
+    "color": "#22c55e",
+    "label": "Positive",
+    "date": "2025-12-01"
+  },
+  "Georgia": {
+    "score": -0.033,
+    "color": "#f87171",
+    "label": "Slightly Negative",
+    "date": "2025-12-01"
+  },
+  "Germany": {
+    "score": -0.252,
+    "color": "#ef4444",
+    "label": "Slightly Negative",
+    "date": "2025-12-01"
+  },
+  "Ghana": {
+    "score": 0.168,
+    "color": "#86efac",
+    "label": "Slightly Positive",
+    "date": "2025-12-01"
+  },
+  "Global": {
+    "score": -0.307,
+    "color": "#ef4444",
+    "label": "Negative",
+    "date": "2025-12-01"
+  },
+  "Greece": {
+    "score": -0.032,
+    "color": "#f87171",
+    "label": "Slightly Negative",
+    "date": "2025-12-01"
+  },
+  "Grenada": {
+    "score": 0.136,
+    "color": "#86efac",
+    "label": "Slightly Positive",
+    "date": "2025-12-01"
+  },
+  "Guatemala": {
+    "score": 0.211,
+    "color": "#4ade80",
+    "label": "Slightly Positive",
+    "date": "2025-12-01"
+  },
+  "Guinea": {
+    "score": -0.159,
+    "color": "#f87171",
+    "label": "Slightly Negative",
+    "date": "2025-12-01"
+  },
+  "Guinea-Bissau": {
+    "score": -0.18,
+    "color": "#f87171",
+    "label": "Slightly Negative",
+    "date": "2025-12-01"
+  },
+  "Guyana": {
+    "score": 0.314,
+    "color": "#4ade80",
+    "label": "Positive",
+    "date": "2025-12-01"
+  },
+  "Haiti": {
+    "score": 0.173,
+    "color": "#86efac",
+    "label": "Slightly Positive",
+    "date": "2025-12-01"
+  },
+  "Hungary": {
+    "score": -0.184,
+    "color": "#f87171",
+    "label": "Slightly Negative",
+    "date": "2025-12-01"
+  },
+  "Iceland": {
+    "score": 0.251,
+    "color": "#4ade80",
+    "label": "Slightly Positive",
+    "date": "2025-12-01"
+  },
+  "India": {
+    "score": -0.06,
+    "color": "#f87171",
+    "label": "Slightly Negative",
+    "date": "2025-12-01"
+  },
+  "Indonesia": {
+    "score": 0.286,
+    "color": "#4ade80",
+    "label": "Slightly Positive",
+    "date": "2025-12-01"
+  },
+  "Iran": {
+    "score": -0.287,
+    "color": "#ef4444",
+    "label": "Slightly Negative",
+    "date": "2025-12-01"
+  },
+  "Iraq": {
+    "score": 0.115,
+    "color": "#86efac",
+    "label": "Slightly Positive",
+    "date": "2025-12-01"
+  },
+  "Ireland": {
+    "score": -0.274,
+    "color": "#ef4444",
+    "label": "Slightly Negative",
+    "date": "2025-12-01"
+  },
+  "Israel": {
+    "score": -0.246,
+    "color": "#ef4444",
+    "label": "Slightly Negative",
+    "date": "2025-12-01"
+  },
+  "Italy": {
+    "score": 0.007,
+    "color": "#86efac",
+    "label": "Slightly Positive",
+    "date": "2025-12-01"
+  },
+  "Jamaica": {
+    "score": -0.149,
+    "color": "#f87171",
+    "label": "Slightly Negative",
+    "date": "2025-12-01"
+  },
+  "Japan": {
+    "score": -0.256,
+    "color": "#ef4444",
+    "label": "Slightly Negative",
+    "date": "2025-12-01"
+  },
+  "Jordan": {
+    "score": 0.391,
+    "color": "#4ade80",
+    "label": "Positive",
+    "date": "2025-12-01"
+  },
+  "Kazakhstan": {
+    "score": 0.055,
+    "color": "#86efac",
+    "label": "Slightly Positive",
+    "date": "2025-12-01"
+  },
+  "Kenya": {
+    "score": -0.042,
+    "color": "#f87171",
+    "label": "Slightly Negative",
+    "date": "2025-12-01"
+  },
+  "Kiribati": {
+    "score": 0.16,
+    "color": "#86efac",
+    "label": "Slightly Positive",
+    "date": "2025-12-01"
+  },
+  "Kuwait": {
+    "score": 0.193,
+    "color": "#86efac",
+    "label": "Slightly Positive",
+    "date": "2025-12-01"
+  },
+  "Kyrgyzstan": {
+    "score": 0.075,
+    "color": "#86efac",
+    "label": "Slightly Positive",
+    "date": "2025-12-01"
+  },
+  "Laos": {
+    "score": -0.079,
+    "color": "#f87171",
+    "label": "Slightly Negative",
+    "date": "2025-12-01"
+  },
+  "Latvia": {
+    "score": 0.077,
+    "color": "#86efac",
+    "label": "Slightly Positive",
+    "date": "2025-12-01"
+  },
+  "Lebanon": {
+    "score": 0.068,
+    "color": "#86efac",
+    "label": "Slightly Positive",
+    "date": "2025-12-01"
+  },
+  "Lesotho": {
+    "score": -0.027,
+    "color": "#f87171",
+    "label": "Slightly Negative",
+    "date": "2025-12-01"
+  },
+  "Liberia": {
+    "score": 0.218,
+    "color": "#4ade80",
+    "label": "Slightly Positive",
+    "date": "2025-12-01"
+  },
+  "Libya": {
+    "score": 0.121,
+    "color": "#86efac",
+    "label": "Slightly Positive",
+    "date": "2025-12-01"
+  },
+  "Liechtenstein": {
+    "score": 0.008,
+    "color": "#86efac",
+    "label": "Slightly Positive",
+    "date": "2025-12-01"
+  },
+  "Lithuania": {
+    "score": 0.054,
+    "color": "#86efac",
+    "label": "Slightly Positive",
+    "date": "2025-12-01"
+  },
+  "Luxembourg": {
+    "score": 0.066,
+    "color": "#86efac",
+    "label": "Slightly Positive",
+    "date": "2025-12-01"
+  },
+  "Madagascar": {
+    "score": 0.169,
+    "color": "#86efac",
+    "label": "Slightly Positive",
+    "date": "2025-12-01"
+  },
+  "Malawi": {
+    "score": 0.264,
+    "color": "#4ade80",
+    "label": "Slightly Positive",
+    "date": "2025-12-01"
+  },
+  "Malaysia": {
+    "score": 0.26,
+    "color": "#4ade80",
+    "label": "Slightly Positive",
+    "date": "2025-12-01"
+  },
+  "Maldives": {
+    "score": 0.107,
+    "color": "#86efac",
+    "label": "Slightly Positive",
+    "date": "2025-12-01"
+  },
+  "Mali": {
+    "score": -0.223,
+    "color": "#ef4444",
+    "label": "Slightly Negative",
+    "date": "2025-12-01"
+  },
+  "Malta": {
+    "score": 0.071,
+    "color": "#86efac",
+    "label": "Slightly Positive",
+    "date": "2025-12-01"
+  },
+  "Marshall Islands": {
+    "score": 0.246,
+    "color": "#4ade80",
+    "label": "Slightly Positive",
+    "date": "2025-12-01"
+  },
+  "Mauritania": {
+    "score": 0.147,
+    "color": "#86efac",
+    "label": "Slightly Positive",
+    "date": "2025-12-01"
+  },
+  "Mauritius": {
+    "score": 0.104,
+    "color": "#86efac",
+    "label": "Slightly Positive",
+    "date": "2025-12-01"
+  },
+  "Mexico": {
+    "score": 0.01,
+    "color": "#86efac",
+    "label": "Slightly Positive",
+    "date": "2025-12-01"
+  },
+  "Micronesia": {
+    "score": 0.17,
+    "color": "#86efac",
+    "label": "Slightly Positive",
+    "date": "2025-02-01"
+  },
+  "Moldova": {
+    "score": 0.167,
+    "color": "#86efac",
+    "label": "Slightly Positive",
+    "date": "2025-11-01"
+  },
+  "Monaco": {
+    "score": 0.293,
+    "color": "#4ade80",
+    "label": "Slightly Positive",
+    "date": "2025-12-01"
+  },
+  "Mongolia": {
+    "score": 0.369,
+    "color": "#4ade80",
+    "label": "Positive",
+    "date": "2025-12-01"
+  },
+  "Montenegro": {
+    "score": -0.158,
+    "color": "#f87171",
+    "label": "Slightly Negative",
+    "date": "2025-12-01"
+  },
+  "Morocco": {
+    "score": 0.442,
+    "color": "#22c55e",
+    "label": "Positive",
+    "date": "2025-12-01"
+  },
+  "Mozambique": {
+    "score": -0.205,
+    "color": "#ef4444",
+    "label": "Slightly Negative",
+    "date": "2025-12-01"
+  },
+  "Myanmar": {
+    "score": -0.544,
+    "color": "#dc2626",
+    "label": "Negative",
+    "date": "2025-12-01"
+  },
+  "Namibia": {
+    "score": 0.243,
+    "color": "#4ade80",
+    "label": "Slightly Positive",
+    "date": "2025-12-01"
+  },
+  "Nauru": {
+    "score": -0.008,
+    "color": "#f87171",
+    "label": "Slightly Negative",
+    "date": "2025-12-01"
+  },
+  "Nepal": {
+    "score": 0.029,
+    "color": "#86efac",
+    "label": "Slightly Positive",
+    "date": "2025-12-01"
+  },
+  "Netherlands": {
+    "score": 0.07,
+    "color": "#86efac",
+    "label": "Slightly Positive",
+    "date": "2025-12-01"
+  },
+  "New Zealand": {
+    "score": -0.098,
+    "color": "#f87171",
+    "label": "Slightly Negative",
+    "date": "2025-12-01"
+  },
+  "Niger": {
+    "score": -0.456,
+    "color": "#dc2626",
+    "label": "Negative",
+    "date": "2025-12-01"
+  },
+  "Nigeria": {
+    "score": -0.108,
+    "color": "#f87171",
+    "label": "Slightly Negative",
+    "date": "2025-12-01"
+  },
+  "North Korea": {
+    "score": 0.057,
+    "color": "#86efac",
+    "label": "Slightly Positive",
+    "date": "2025-12-01"
+  },
+  "North Macedonia": {
+    "score": 0.062,
+    "color": "#86efac",
+    "label": "Slightly Positive",
+    "date": "2025-12-01"
+  },
+  "Norway": {
+    "score": 0.008,
+    "color": "#86efac",
+    "label": "Slightly Positive",
+    "date": "2025-12-01"
+  },
+  "Oman": {
+    "score": 0.356,
+    "color": "#4ade80",
+    "label": "Positive",
+    "date": "2025-12-01"
+  },
+  "Pakistan": {
+    "score": -0.271,
+    "color": "#ef4444",
+    "label": "Slightly Negative",
+    "date": "2025-12-01"
+  },
+  "Palau": {
+    "score": 0.153,
+    "color": "#86efac",
+    "label": "Slightly Positive",
+    "date": "2025-12-01"
+  },
+  "Palestine": {
+    "score": -0.174,
+    "color": "#f87171",
+    "label": "Slightly Negative",
+    "date": "2025-12-01"
+  },
+  "Panama": {
+    "score": 0.06,
+    "color": "#86efac",
+    "label": "Slightly Positive",
+    "date": "2025-12-01"
+  },
+  "Papua New Guinea": {
+    "score": 0.12,
+    "color": "#86efac",
+    "label": "Slightly Positive",
+    "date": "2025-12-01"
+  },
+  "Paraguay": {
+    "score": 0.368,
+    "color": "#4ade80",
+    "label": "Positive",
+    "date": "2025-12-01"
+  },
+  "Peru": {
+    "score": -0.248,
+    "color": "#ef4444",
+    "label": "Slightly Negative",
+    "date": "2025-12-01"
+  },
+  "Philippines": {
+    "score": -0.292,
+    "color": "#ef4444",
+    "label": "Slightly Negative",
+    "date": "2025-12-01"
+  },
+  "Poland": {
+    "score": 0.079,
+    "color": "#86efac",
+    "label": "Slightly Positive",
+    "date": "2025-12-01"
+  },
+  "Portugal": {
+    "score": -0.004,
+    "color": "#f87171",
+    "label": "Slightly Negative",
+    "date": "2025-12-01"
+  },
+  "Qatar": {
+    "score": 0.084,
+    "color": "#86efac",
+    "label": "Slightly Positive",
+    "date": "2025-12-01"
+  },
+  "Romania": {
+    "score": 0.027,
+    "color": "#86efac",
+    "label": "Slightly Positive",
+    "date": "2025-12-01"
+  },
+  "Russia": {
+    "score": -0.195,
+    "color": "#f87171",
+    "label": "Slightly Negative",
+    "date": "2025-12-01"
+  },
+  "Rwanda": {
+    "score": 0.238,
+    "color": "#4ade80",
+    "label": "Slightly Positive",
+    "date": "2025-12-01"
+  },
+  "Saint Kitts and Nevis": {
+    "score": 0.412,
+    "color": "#22c55e",
+    "label": "Positive",
+    "date": "2025-12-01"
+  },
+  "Saint Lucia": {
+    "score": 0.053,
+    "color": "#86efac",
+    "label": "Slightly Positive",
+    "date": "2025-12-01"
+  },
+  "Saint Vincent and the Grenadines": {
+    "score": 0.252,
+    "color": "#4ade80",
+    "label": "Slightly Positive",
+    "date": "2025-12-01"
+  },
+  "Samoa": {
+    "score": 0.176,
+    "color": "#86efac",
+    "label": "Slightly Positive",
+    "date": "2025-12-01"
+  },
+  "San Marino": {
+    "score": -0.146,
+    "color": "#f87171",
+    "label": "Slightly Negative",
+    "date": "2025-12-01"
+  },
+  "Sao Tome and Principe": {
+    "score": 0.146,
+    "color": "#86efac",
+    "label": "Slightly Positive",
+    "date": "2025-12-01"
+  },
+  "Saudi Arabia": {
+    "score": -0.002,
+    "color": "#f87171",
+    "label": "Slightly Negative",
+    "date": "2025-12-01"
+  },
+  "Senegal": {
+    "score": 0.009,
+    "color": "#86efac",
+    "label": "Slightly Positive",
+    "date": "2025-12-01"
+  },
+  "Serbia": {
+    "score": 0.402,
+    "color": "#22c55e",
+    "label": "Positive",
+    "date": "2025-12-01"
+  },
+  "Seychelles": {
+    "score": 0.275,
+    "color": "#4ade80",
+    "label": "Slightly Positive",
+    "date": "2025-11-01"
+  },
+  "Sierra Leone": {
+    "score": 0.259,
+    "color": "#4ade80",
+    "label": "Slightly Positive",
+    "date": "2025-12-01"
+  },
+  "Singapore": {
+    "score": -0.069,
+    "color": "#f87171",
+    "label": "Slightly Negative",
+    "date": "2025-12-01"
+  },
+  "Slovakia": {
+    "score": 0.153,
+    "color": "#86efac",
+    "label": "Slightly Positive",
+    "date": "2025-12-01"
+  },
+  "Slovenia": {
+    "score": 0.35,
+    "color": "#4ade80",
+    "label": "Positive",
+    "date": "2025-12-01"
+  },
+  "Solomon Islands": {
+    "score": 0.225,
+    "color": "#4ade80",
+    "label": "Slightly Positive",
+    "date": "2025-12-01"
+  },
+  "Somalia": {
+    "score": 0.047,
+    "color": "#86efac",
+    "label": "Slightly Positive",
+    "date": "2025-12-01"
+  },
+  "South Africa": {
+    "score": -0.055,
+    "color": "#f87171",
+    "label": "Slightly Negative",
+    "date": "2025-12-01"
+  },
+  "South Korea": {
+    "score": 0.03,
+    "color": "#86efac",
+    "label": "Slightly Positive",
+    "date": "2025-12-01"
+  },
+  "South Sudan": {
+    "score": -0.098,
+    "color": "#f87171",
+    "label": "Slightly Negative",
+    "date": "2025-12-01"
+  },
+  "Spain": {
+    "score": 0.165,
+    "color": "#86efac",
+    "label": "Slightly Positive",
+    "date": "2025-12-01"
+  },
+  "Sri Lanka": {
+    "score": -0.073,
+    "color": "#f87171",
+    "label": "Slightly Negative",
+    "date": "2025-12-01"
+  },
+  "Sudan": {
+    "score": -0.512,
+    "color": "#dc2626",
+    "label": "Negative",
+    "date": "2025-12-01"
+  },
+  "Suriname": {
+    "score": 0.261,
+    "color": "#4ade80",
+    "label": "Slightly Positive",
+    "date": "2025-12-01"
+  },
+  "Sweden": {
+    "score": 0.408,
+    "color": "#22c55e",
+    "label": "Positive",
+    "date": "2025-12-01"
+  },
+  "Switzerland": {
+    "score": -0.109,
+    "color": "#f87171",
+    "label": "Slightly Negative",
+    "date": "2025-12-01"
+  },
+  "Syria": {
+    "score": -0.047,
+    "color": "#f87171",
+    "label": "Slightly Negative",
+    "date": "2025-12-01"
+  },
+  "Taiwan": {
+    "score": 0.012,
+    "color": "#86efac",
+    "label": "Slightly Positive",
+    "date": "2025-12-01"
+  },
+  "Tajikistan": {
+    "score": -0.231,
+    "color": "#ef4444",
+    "label": "Slightly Negative",
+    "date": "2025-12-01"
+  },
+  "Tanzania": {
+    "score": 0.227,
+    "color": "#4ade80",
+    "label": "Slightly Positive",
+    "date": "2025-12-01"
+  },
+  "Thailand": {
+    "score": -0.328,
+    "color": "#ef4444",
+    "label": "Negative",
+    "date": "2025-12-01"
+  },
+  "Timor-Leste": {
+    "score": 0.395,
+    "color": "#4ade80",
+    "label": "Positive",
+    "date": "2025-12-01"
+  },
+  "Togo": {
+    "score": 0.426,
+    "color": "#22c55e",
+    "label": "Positive",
+    "date": "2025-12-01"
+  },
+  "Tonga": {
+    "score": 0.3,
+    "color": "#4ade80",
+    "label": "Slightly Positive",
+    "date": "2025-12-01"
+  },
+  "Trinidad and Tobago": {
+    "score": 0.166,
+    "color": "#86efac",
+    "label": "Slightly Positive",
+    "date": "2025-12-01"
+  },
+  "Tunisia": {
+    "score": -0.05,
+    "color": "#f87171",
+    "label": "Slightly Negative",
+    "date": "2025-12-01"
+  },
+  "Turkey": {
+    "score": 0.014,
+    "color": "#86efac",
+    "label": "Slightly Positive",
+    "date": "2025-12-01"
+  },
+  "Turkmenistan": {
+    "score": 0.509,
+    "color": "#22c55e",
+    "label": "Positive",
+    "date": "2025-12-01"
+  },
+  "Tuvalu": {
+    "score": -0.057,
+    "color": "#f87171",
+    "label": "Slightly Negative",
+    "date": "2025-12-01"
+  },
+  "Uganda": {
+    "score": 0.155,
+    "color": "#86efac",
+    "label": "Slightly Positive",
+    "date": "2025-12-01"
+  },
+  "Ukraine": {
+    "score": 0.025,
+    "color": "#86efac",
+    "label": "Slightly Positive",
+    "date": "2025-12-01"
+  },
+  "United Arab Emirates": {
+    "score": 0.282,
+    "color": "#4ade80",
+    "label": "Slightly Positive",
+    "date": "2025-12-01"
+  },
+  "United Kingdom": {
+    "score": 0.036,
+    "color": "#86efac",
+    "label": "Slightly Positive",
+    "date": "2025-12-01"
+  },
+  "United States": {
+    "score": -0.017,
+    "color": "#f87171",
+    "label": "Slightly Negative",
+    "date": "2025-12-01"
+  },
+  "Uruguay": {
+    "score": -0.057,
+    "color": "#f87171",
+    "label": "Slightly Negative",
+    "date": "2025-12-01"
+  },
+  "Uzbekistan": {
+    "score": 0.304,
+    "color": "#4ade80",
+    "label": "Positive",
+    "date": "2025-12-01"
+  },
+  "Vanuatu": {
+    "score": -0.115,
+    "color": "#f87171",
+    "label": "Slightly Negative",
+    "date": "2025-12-01"
+  },
+  "Vatican City": {
+    "score": 0.071,
+    "color": "#86efac",
+    "label": "Slightly Positive",
+    "date": "2025-12-01"
+  },
+  "Venezuela": {
+    "score": -0.175,
+    "color": "#f87171",
+    "label": "Slightly Negative",
+    "date": "2025-12-01"
+  },
+  "Vietnam": {
+    "score": 0.255,
+    "color": "#4ade80",
+    "label": "Slightly Positive",
+    "date": "2025-12-01"
+  },
+  "Yemen": {
+    "score": -0.43,
+    "color": "#dc2626",
+    "label": "Negative",
+    "date": "2025-12-01"
+  },
+  "Zambia": {
+    "score": 0.042,
+    "color": "#86efac",
+    "label": "Slightly Positive",
+    "date": "2025-12-01"
+  },
+  "Zimbabwe": {
+    "score": 0.104,
+    "color": "#86efac",
+    "label": "Slightly Positive",
+    "date": "2025-12-01"
+  }
+}

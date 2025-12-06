@@ -1,0 +1,22 @@
+[
+  {
+    "id": 15,
+    "title": "IIT Madras\u2019 AI4Bharat unveils new benchmark test for Indian languages, context",
+    "url": "https://indianexpress.com/article/technology/artificial-intelligence/iit-madras-ai4bharat-benchmark-ai-indian-languages-10360996/",
+    "source": "indianexpress.com",
+    "description": "AI4Bharat, a research lab at Indian Institute of Technology (IIT) Madras, has introduced a new, open-source benchmark test specifically designed to assess the performance of large language models (LLMs) on Indian languages as well as Indian context and safety.\n\nDeveloped with support from Google Clo...",
+    "category": "LLM Benchmarks",
+    "country": "India",
+    "published_date": "2025-11-13"
+  },
+  {
+    "id": 11,
+    "title": "OpenAI GPT 5.1 launched: What\u2019s new in OpenAI\u2019s most advanced AI model",
+    "url": "https://www.thehindu.com/sci-tech/technology/chatgpt-51-launched-whats-new-in-openais-most-advanced-ai-model/article70274165.ece",
+    "source": "www.thehindu.com",
+    "description": "OpenAI on Wednesday (November 12, 2025) announced an upgrade to its GPT-5 AI model, with the \u201cwarmer\u201d and \u201cmore intelligent\u201d GPT\u20115.1 Instant model, and an easier to understand GPT\u20115.1 Thinking model.\n\nThe company noted that GPT-5.1 Instant was its most used model, while the GPT-5.1 Thinking model wa...",
+    "category": "New AI Model Release",
+    "country": "India",
+    "published_date": "2025-11-13"
+  }
+]
