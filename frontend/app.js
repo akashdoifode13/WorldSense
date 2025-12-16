@@ -25,37 +25,7 @@ window.addEventListener('load', () => {
     }
 });
 
-async function initializeApp() {
-    setupEventListeners();
-
-    const savedTheme = localStorage.getItem('theme') || 'dark';
-    setTheme(savedTheme);
-
-    initializeCountryData();
-
-    // 1. Show the view FIRST so the div has height
-    showMapView();
-
-    // 2. Initialize Map with the config from your example
-    setTimeout(() => {
-        initMap();
-    }, 100);
-
-    await loadAvailableDates();
-
-    // Check if we have an initial country from URL (e.g., /india)
-    if (window.INITIAL_COUNTRY && window.INITIAL_COUNTRY !== 'Global') {
-        const countryName = window.INITIAL_COUNTRY;
-        // Find the country code
-        const country = COUNTRY_LIST.find(c => c.name.toLowerCase() === countryName.toLowerCase());
-        const code = country ? country.code : null;
-
-        // Wait for map to initialize then select country
-        setTimeout(() => {
-            selectCountry(countryName, code);
-        }, 500);
-    }
-}
+// function initializeApp() removed (duplicate)
 
 // If we have data, set current date to latest
 if (datesWithData.size > 0) {
@@ -702,10 +672,17 @@ async function selectCountry(countryName, code) {
     selectedCountry = countryName;
     document.getElementById('selectedCountryName').textContent = countryName;
 
-    // Update browser URL to clean format like /india
+    // Update browser URL
     const slug = countryName.toLowerCase().replace(/\s+/g, '-');
-    const newUrl = `/${slug}`;
-    window.history.pushState({ country: countryName }, countryName, newUrl);
+
+    if (STATIC_MODE) {
+        // In static mode, use query params to avoid 404s on refresh and relative path issues
+        const newUrl = `?country=${encodeURIComponent(countryName)}`;
+        window.history.pushState({ country: countryName }, countryName, newUrl);
+    } else {
+        const newUrl = `/${slug}`;
+        window.history.pushState({ country: countryName }, countryName, newUrl);
+    }
 
     // Update map selection (with error handling to prevent blocking view switch)
     if (map) {
@@ -968,6 +945,26 @@ async function initializeApp() {
             // Adjust for timezone to avoid jumping back a day
             currentDate.setMinutes(currentDate.getMinutes() + currentDate.getTimezoneOffset());
         }
+    }
+
+    // 4. Handle deep linking (Load initial country)
+    let initialCountry = null;
+    if (STATIC_MODE) {
+        const params = new URLSearchParams(window.location.search);
+        if (params.has('country')) {
+            initialCountry = decodeURIComponent(params.get('country'));
+        }
+    } else if (window.INITIAL_COUNTRY && window.INITIAL_COUNTRY !== 'Global') {
+        initialCountry = window.INITIAL_COUNTRY;
+    }
+
+    if (initialCountry && initialCountry !== 'Global') {
+        // Wait for map initialization before selecting
+        setTimeout(() => {
+            const countryEntry = COUNTRY_LIST.find(c => c.name.toLowerCase() === initialCountry.toLowerCase());
+            const code = countryEntry ? countryEntry.code : null;
+            selectCountry(initialCountry, code);
+        }, 500);
     }
 }
 
