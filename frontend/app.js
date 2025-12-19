@@ -7,6 +7,11 @@ let datesWithData = new Set();
 let currentTheme = 'dark';
 let map = null;
 
+// ===== State Management =====
+let comparisonCountries = []; // Array of country names for benchmarking
+let chartTooltip = null;
+let indicatorMetadata = {}; // Dynamic indicator metadata from backend
+
 // ===== API Configuration =====
 const API_BASE = window.location.origin;
 
@@ -59,6 +64,52 @@ function setupEventListeners() {
         exportBtn.addEventListener('click', exportData);
     }
 
+    // Benchmark Comparison
+    const compareSearch = document.getElementById('compareSearch');
+    const compareSuggestions = document.getElementById('compareSuggestions');
+    const clearComparison = document.getElementById('clearComparison');
+
+    if (compareSearch) {
+        compareSearch.addEventListener('input', (e) => {
+            const query = e.target.value.toLowerCase();
+            if (query.length < 2) {
+                compareSuggestions.classList.add('hidden');
+                return;
+            }
+
+            const results = COUNTRY_LIST.filter(c => c.name.toLowerCase().includes(query)).map(c => c.name);
+            if (results.length > 0) {
+                compareSuggestions.innerHTML = results.map(c => `<div class="suggestion-item">${c}</div>`).join('');
+                compareSuggestions.classList.remove('hidden');
+            } else {
+                compareSuggestions.classList.add('hidden');
+            }
+        });
+
+        compareSuggestions.addEventListener('click', (e) => {
+            const item = e.target.closest('.suggestion-item');
+            if (item) {
+                const country = item.textContent;
+                if (!comparisonCountries.includes(country) && comparisonCountries.length < 4) {
+                    comparisonCountries.push(country);
+                    renderComparisonChips();
+                    loadBenchmarkedData();
+                }
+                compareSearch.value = '';
+                compareSuggestions.classList.add('hidden');
+            }
+        });
+    }
+
+    if (clearComparison) {
+        clearComparison.addEventListener('click', () => {
+            comparisonCountries = [];
+            compareSearch.value = '';
+            renderComparisonChips();
+            loadBenchmarkedData();
+        });
+    }
+
     // Search
     const searchInput = document.getElementById('countrySearch');
     searchInput.addEventListener('input', handleSearchInput);
@@ -79,24 +130,109 @@ function setupEventListeners() {
     // Regenerate Summary button
     const regenBtn = document.getElementById('regenerateSummaryBtn');
     if (regenBtn) {
-        regenBtn.addEventListener('click', regenerateSummary);
+        regenBtn.addEventListener('click', generateSummary);
     }
 
     // Create Summary button (Placeholder)
     const createBtn = document.getElementById('createSummaryBtn');
     if (createBtn) {
-        createBtn.addEventListener('click', regenerateSummary); // Reuse same function
+        createBtn.addEventListener('click', generateSummary);
+    }
+
+    // Comparison CTA button
+    const compareSummariesBtn = document.getElementById('compareSummariesBtn');
+    if (compareSummariesBtn) {
+        compareSummariesBtn.addEventListener('click', generateSummary);
     }
 
     // Close suggestions when clicking outside
     document.addEventListener('click', (e) => {
         if (!e.target.closest('.search-container')) {
             document.getElementById('searchSuggestions').classList.add('hidden');
+            if (compareSuggestions) compareSuggestions.classList.add('hidden');
         }
     });
 
     // Make selectCountry global so it can be called from inline onclick handlers
     window.selectCountry = selectCountry;
+}
+
+function renderComparisonChips() {
+    const chipContainer = document.getElementById('comparisonChips');
+    const clearComparison = document.getElementById('clearComparison');
+
+    if (!chipContainer) return;
+
+    chipContainer.innerHTML = '';
+
+    if (comparisonCountries.length > 0) {
+        if (clearComparison) clearComparison.classList.remove('hidden');
+
+        comparisonCountries.forEach((country, index) => {
+            const chip = document.createElement('div');
+            chip.className = 'chip';
+            chip.innerHTML = `
+                <span>${country}</span>
+                <span class="material-symbols-outlined chip-remove" data-index="${index}">close</span>
+            `;
+            chipContainer.appendChild(chip);
+        });
+
+        // Add listeners to remove buttons
+        chipContainer.querySelectorAll('.chip-remove').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const index = parseInt(e.target.dataset.index);
+                comparisonCountries.splice(index, 1);
+                renderComparisonChips();
+                loadBenchmarkedData();
+                updateSummaryVisibility(); // Update CTA text and visibility
+            });
+        });
+    } else {
+        if (clearComparison) clearComparison.classList.add('hidden');
+    }
+
+    updateSummaryVisibility();
+}
+
+function updateSummaryVisibility() {
+    const primaryCard = document.getElementById('countrySummaryCard');
+    const primaryPlaceholder = document.getElementById('generateSummaryPlaceholder');
+    const comparativePlaceholder = document.getElementById('comparativeSummaryPlaceholder');
+    const comparativeText = document.getElementById('comparativeSummaryText');
+
+    if (comparisonCountries.length > 0) {
+        // Benchmarking Mode - Hide single country outcomes
+        if (primaryCard) primaryCard.classList.add('hidden');
+        if (primaryPlaceholder) primaryPlaceholder.classList.add('hidden');
+
+        if (comparativePlaceholder) {
+            comparativePlaceholder.classList.remove('hidden');
+            if (comparativeText) {
+                const names = [selectedCountry, ...comparisonCountries];
+                if (names.length === 2) {
+                    comparativeText.textContent = `Generate a side-by-side economic analysis for ${names[0]} and ${names[1]}.`;
+                } else if (names.length > 2) {
+                    const last = names.pop();
+                    comparativeText.textContent = `Generate a side-by-side economic analysis for ${names.join(', ')} and ${last}.`;
+                }
+            }
+        }
+    } else {
+        // Single Country Mode
+        if (comparativePlaceholder) comparativePlaceholder.classList.add('hidden');
+
+        // Restore single country layout
+        if (!selectedCountry || selectedCountry === 'Global') return;
+
+        // Ensure overview and its components are visible if they have content
+        if (primaryCard) {
+            const hasContent = document.getElementById('countrySummaryContent').innerHTML.trim() !== '';
+            if (hasContent) {
+                primaryCard.classList.remove('hidden');
+            }
+        }
+    }
 }
 
 // Copy share link to clipboard
@@ -234,7 +370,19 @@ async function loadCountryOverviewForDate(dateStr) {
     if (!dateStr) return;
 
     // Show loading state
+    const summaryCard = document.getElementById('countrySummaryCard');
+    const summaryPlaceholder = document.getElementById('generateSummaryPlaceholder');
+    const comparativePlaceholder = document.getElementById('comparativeSummaryPlaceholder');
     const summaryContent = document.getElementById('countrySummaryContent');
+
+    if (comparisonCountries.length > 0) {
+        // In comparison mode, always prioritize the comparative CTA
+        updateSummaryVisibility();
+        return;
+    }
+
+    if (comparativePlaceholder) comparativePlaceholder.classList.add('hidden');
+
     if (summaryContent) {
         summaryContent.innerHTML = '<div class="loading-spinner"><span class="material-symbols-outlined spin">refresh</span> Loading analysis...</div>';
     }
@@ -312,8 +460,11 @@ async function loadCountryOverviewForDate(dateStr) {
         }
 
     } catch (error) {
-        console.error('Error loading country overview:', error);
-        showToast('Failed to load data', 'error');
+        console.error('Error loading country overview data:', error);
+        showToast('Failed to load analysis for the selected month.', 'error');
+        // Unhide core section so buttons/header remain visible
+        const overviewEl = document.getElementById('countryOverview');
+        if (overviewEl) overviewEl.classList.remove('hidden');
     }
 }
 
@@ -698,18 +849,17 @@ async function selectCountry(countryName, code) {
 
     showCalendarView();
 
-    // Load country overview (summary and signals for last run date)
-    await loadCountryOverview();
-
-    // Load data for this country
-    await loadAvailableDates();
-    await loadLastRunDate();
-    // renderCalendar(); // Removed - no longer needed
+    // Load overview and metadata in parallel for speed
+    await Promise.all([
+        loadCountryOverview(),
+        loadAvailableDates()
+    ]);
 
     // Clear search and suggestions
     const searchInput = document.getElementById('countrySearch');
-    searchInput.value = '';
-    document.getElementById('searchSuggestions').classList.add('hidden');
+    if (searchInput) searchInput.value = '';
+    const suggestions = document.getElementById('searchSuggestions');
+    if (suggestions) suggestions.classList.add('hidden');
 }
 
 // ===== Data State =====
@@ -926,6 +1076,9 @@ async function initializeApp() {
     // Initialize country data for search
     initializeCountryData();
 
+    // Load indicator metadata
+    await loadIndicatorMetadata();
+
     // 1. SHOW the view first (Ensures the div has width/height)
     showMapView();
 
@@ -1113,12 +1266,9 @@ function showCalendarView() {
     const calendarView = document.getElementById('calendarView');
     const dailyView = document.getElementById('dailyView');
 
-    mapView.classList.add('hidden');
-    calendarView.classList.remove('hidden');
-    dailyView.classList.add('hidden');
-
-    selectedDate = null;
-    // renderCalendar(); // Removed - calendar grid no longer exists
+    if (mapView) mapView.classList.add('hidden');
+    if (calendarView) calendarView.classList.remove('hidden');
+    if (dailyView) dailyView.classList.add('hidden');
 }
 
 function showDailyView(date) {
@@ -1141,12 +1291,14 @@ async function loadLastRunDate() {
         const lastUpdatedEl = document.getElementById('lastUpdatedDate');
 
         if (data.last_run_date) {
-            const lastDate = new Date(data.last_run_date);
-            // Adjust for timezone
-            lastDate.setMinutes(lastDate.getMinutes() + lastDate.getTimezoneOffset());
-            // Format as 'Dec 2025' or 'Dec, 2025'
-            const options = { year: 'numeric', month: 'short' };
-            lastUpdatedEl.textContent = lastDate.toLocaleDateString('en-US', options);
+            const lastDate = parseIsoDate(data.last_run_date);
+            if (lastDate && !isNaN(lastDate.getTime())) {
+                // Format as 'Dec 2025' or 'Dec, 2025'
+                const options = { year: 'numeric', month: 'short' };
+                lastUpdatedEl.textContent = lastDate.toLocaleDateString('en-US', options);
+            } else {
+                lastUpdatedEl.textContent = 'No data yet';
+            }
         } else {
             lastUpdatedEl.textContent = 'No data yet';
         }
@@ -1156,54 +1308,664 @@ async function loadLastRunDate() {
     }
 }
 
+// ===== World Bank API Integration =====
+const WB_INDICATORS = {
+    'NY.GDP.MKTP.CD': { label: 'GDP', format: 'currency', compact: true, better: 'high' },
+    'NY.GDP.MKTP.KD.ZG': { label: 'GDP Growth', format: 'percent', better: 'high' },
+    'NY.GDP.PCAP.CD': { label: 'GDP per Capita', format: 'currency', compact: true, better: 'high' },
+    'FP.CPI.TOTL.ZG': { label: 'Inflation', format: 'percent', better: 'low' },
+    'SL.UEM.TOTL.ZS': { label: 'Unemployment', format: 'percent', better: 'low' },
+    'BN.CAB.XOKA.GD.ZS': { label: 'Current Account', format: 'percent', suffix: ' of GDP', better: 'high' },
+    'NE.EXP.GNFS.ZS': { label: 'Exports', format: 'percent', suffix: ' of GDP', better: 'high' },
+    'NE.IMP.GNFS.ZS': { label: 'Imports', format: 'percent', suffix: ' of GDP', better: 'low' },
+    'BX.KLT.DINV.WD.GD.ZS': { label: 'FDI Inflows', format: 'percent', suffix: ' of GDP', better: 'high' },
+    'FI.RES.TOTL.CD': { label: 'Reserves', format: 'currency', compact: true, better: 'high' },
+    'GC.DOD.TOTL.GD.ZS': { label: 'Gov Debt', format: 'percent', suffix: ' of GDP', better: 'low' },
+    'NY.GNS.ICTR.ZS': { label: 'Gross Savings', format: 'percent', suffix: ' of GDP', better: 'high' },
+    'NE.GDI.TOTL.ZS': { label: 'Capital Formation', format: 'percent', suffix: ' of GDP', better: 'high' },
+
+    // IMF Indicators (Forecasts & Higher Frequency)
+    'IMF.NGDP_RPCH': { label: 'Real GDP Growth (IMF)', format: 'percent', better: 'high', source: 'IMF' },
+    'IMF.PCPIPCH': { label: 'Inflation Rate (IMF)', format: 'percent', better: 'low', source: 'IMF' },
+    'IMF.LUR': { label: 'Unemployment Rate (IMF)', format: 'percent', better: 'low', source: 'IMF' },
+    'IMF.BCA_NGDPD': { label: 'Current Account (IMF)', format: 'percent', suffix: ' of GDP', better: 'high', source: 'IMF' },
+    'IMF.GGXWDG_NGDP': { label: 'Gross Debt (IMF)', format: 'percent', suffix: ' of GDP', better: 'low', source: 'IMF' }
+};
+
+// Map ISO2 to ISO3 codes
+const COUNTRY_ISO3 = {
+    'AF': 'AFG', 'AL': 'ALB', 'DZ': 'DZA', 'AD': 'AND', 'AO': 'AGO', 'AG': 'ATG', 'AR': 'ARG', 'AM': 'ARM', 'AU': 'AUS', 'AT': 'AUT',
+    'AZ': 'AZE', 'BS': 'BHS', 'BH': 'BHR', 'BD': 'BGD', 'BB': 'BRB', 'BY': 'BLR', 'BE': 'BEL', 'BZ': 'BLZ', 'BJ': 'BEN', 'BT': 'BTN',
+    'BO': 'BOL', 'BA': 'BIH', 'BW': 'BWA', 'BR': 'BRA', 'BN': 'BRN', 'BG': 'BGR', 'BF': 'BFA', 'BI': 'BDI', 'CV': 'CPV', 'KH': 'KHM',
+    'CM': 'CMR', 'CA': 'CAN', 'CF': 'CAF', 'TD': 'TCD', 'CL': 'CHL', 'CN': 'CHN', 'CO': 'COL', 'KM': 'COM', 'CG': 'COG', 'CR': 'CRI',
+    'HR': 'HRV', 'CU': 'CUB', 'CY': 'CYP', 'CZ': 'CZE', 'CD': 'COD', 'DK': 'DNK', 'DJ': 'DJI', 'DM': 'DMA', 'DO': 'DOM', 'EC': 'ECU',
+    'EG': 'EGY', 'SV': 'SLV', 'GQ': 'GNQ', 'ER': 'ERI', 'EE': 'EST', 'SZ': 'SWZ', 'ET': 'ETH', 'FJ': 'FJI', 'FI': 'FIN', 'FR': 'FRA',
+    'GA': 'GAB', 'GM': 'GMB', 'GE': 'GEO', 'DE': 'DEU', 'GH': 'GHA', 'GR': 'GRC', 'GD': 'GRD', 'GT': 'GTM', 'GN': 'GIN', 'GW': 'GNB',
+    'GY': 'GUY', 'HT': 'HTI', 'HN': 'HND', 'HU': 'HUN', 'IS': 'ISL', 'IN': 'IND', 'ID': 'IDN', 'IR': 'IRN', 'IQ': 'IRQ', 'IE': 'IRL',
+    'IL': 'ISR', 'IT': 'ITA', 'JM': 'JAM', 'JP': 'JPN', 'JO': 'JOR', 'KZ': 'KAZ', 'KE': 'KEN', 'KI': 'KIR', 'KW': 'KWT', 'KG': 'KGZ',
+    'LA': 'LAO', 'LV': 'LVA', 'LB': 'LBN', 'LS': 'LSO', 'LR': 'LBR', 'LY': 'LBY', 'LI': 'LIE', 'LT': 'LTU', 'LU': 'LUX', 'MG': 'MDG',
+    'MW': 'MWI', 'MY': 'MYS', 'MV': 'MDV', 'ML': 'MLI', 'MT': 'MLT', 'MH': 'MHL', 'MR': 'MRT', 'MU': 'MUS', 'MX': 'MEX', 'FM': 'FSM',
+    'MD': 'MDA', 'MC': 'MCO', 'MN': 'MNG', 'ME': 'MNE', 'MA': 'MAR', 'MZ': 'MOZ', 'MM': 'MMR', 'NA': 'NAM', 'NR': 'NRU', 'NP': 'NPL',
+    'NL': 'NLD', 'NZ': 'NZL', 'NI': 'NIC', 'NE': 'NER', 'NG': 'NGA', 'KP': 'PRK', 'MK': 'MKD', 'NO': 'NOR', 'OM': 'OMN', 'PK': 'PAK',
+    'PW': 'PLW', 'PS': 'PSE', 'PA': 'PAN', 'PG': 'PNG', 'PY': 'PRY', 'PE': 'PER', 'PH': 'PHL', 'PL': 'POL', 'PT': 'PRT', 'QA': 'QAT',
+    'RO': 'ROU', 'RU': 'RUS', 'RW': 'RWA', 'KN': 'KNA', 'LC': 'LCA', 'VC': 'VCT', 'WS': 'WSM', 'SM': 'SMR', 'ST': 'STP', 'SA': 'SAU',
+    'SN': 'SEN', 'RS': 'SRB', 'SC': 'SYC', 'SL': 'SLE', 'SG': 'SGP', 'SK': 'SVK', 'SI': 'SVN', 'SB': 'SLB', 'SO': 'SOM', 'ZA': 'ZAF',
+    'KR': 'KOR', 'SS': 'SSD', 'ES': 'ESP', 'LK': 'LKA', 'SD': 'SDN', 'SR': 'SUR', 'SE': 'SWE', 'CH': 'CHE', 'SY': 'SYR', 'TW': 'TWN',
+    'TJ': 'TJK', 'TZ': 'TZA', 'TH': 'THA', 'TL': 'TLS', 'TG': 'TGO', 'TO': 'TON', 'TT': 'TTO', 'TN': 'TUN', 'TR': 'TUR', 'TM': 'TKM',
+    'TV': 'TUV', 'UG': 'UGA', 'UA': 'UKR', 'AE': 'ARE', 'GB': 'GBR', 'US': 'USA', 'UY': 'URY', 'UZ': 'UZB', 'VU': 'VUT', 'VA': 'VAT',
+    'VE': 'VEN', 'VN': 'VNM', 'YE': 'YEM', 'ZM': 'ZMB', 'ZW': 'ZWE'
+};
+
+function getIso3(iso2) {
+    return COUNTRY_ISO3[iso2] || null;
+}
+
+function formatValue(value, config) {
+    if (value === null || value === undefined) return 'N/A';
+
+    let formatted = value;
+    if (config.format === 'percent') {
+        formatted = value.toFixed(1) + '%';
+    } else if (config.format === 'currency') {
+        if (config.compact) {
+            if (value >= 1e12) formatted = '$' + (value / 1e12).toFixed(1) + 'T';
+            else if (value >= 1e9) formatted = '$' + (value / 1e9).toFixed(1) + 'B';
+            else if (value >= 1e6) formatted = '$' + (value / 1e6).toFixed(1) + 'M';
+            else formatted = '$' + Math.round(value).toLocaleString();
+        } else {
+            formatted = '$' + Math.round(value).toLocaleString();
+        }
+    } else if (config.format === 'number') {
+        formatted = value.toFixed(config.decimals || 0);
+    }
+
+    if (config.suffix) formatted += config.suffix;
+    return formatted;
+}
+
+function getIndicatorColor(indicatorId, value) {
+    if (value === null || value === undefined) return '';
+
+    const config = indicatorMetadata[indicatorId] || WB_INDICATORS[indicatorId];
+    if (!config || !config.better) return '';
+
+    if (config.better === 'high') {
+        if (value > 0) return 'text-success';
+        if (value < 0) return 'text-error';
+    } else if (config.better === 'low') {
+        // Special logic for Inflation/Unemployment
+        if (indicatorId.includes('CPI') || indicatorId.includes('UEM') || indicatorId.includes('LUR') || indicatorId.includes('debt')) {
+            if (value > 6) return 'text-error';
+            if (value < 3) return 'text-success';
+        } else {
+            if (value > 0) return 'text-error';
+            if (value < 0) return 'text-success';
+        }
+    }
+
+    return '';
+}
+
+async function loadWorldBankData(iso3, isComparison = false) {
+    const dashboard = document.getElementById('economicDashboard');
+
+    if (!iso3 && !isComparison) {
+        dashboard.innerHTML = '<p style="text-align: center; color: var(--md-sys-color-secondary); grid-column: 1/-1;">Select a country to view data</p>';
+        return;
+    }
+
+    if (!isComparison) {
+        dashboard.classList.remove('hidden');
+        dashboard.innerHTML = '<div class="loading-spinner" style="margin: 20px auto;"></div>';
+    }
+
+    // Fetch from Local Backend
+    const url = `${API_BASE}/api/economic-data/${iso3}`;
+
+    try {
+        const response = await fetch(url);
+        const data = await response.json();
+        return data; // Return data for caller to handle parallel loads
+    } catch (error) {
+        console.error('World Bank API Error:', error);
+        if (!isComparison) {
+            dashboard.innerHTML = '<p style="text-align: center; color: var(--md-sys-color-error); grid-column: 1/-1;">Failed to load economic data</p>';
+        }
+        return null;
+    }
+}
+
+async function loadBenchmarkedData() {
+    if (!selectedCountry || selectedCountry === 'Global') {
+        document.getElementById('economicDashboard').classList.add('hidden');
+        return;
+    }
+
+    const primaryEntry = COUNTRY_LIST.find(c => c.name === selectedCountry || c.name.toLowerCase() === selectedCountry.toLowerCase());
+    const iso3Primary = primaryEntry ? getIso3(primaryEntry.code) : null;
+
+    if (!iso3Primary) return;
+
+    // Show loading state
+    const dashboard = document.getElementById('economicDashboard');
+    dashboard.classList.remove('hidden');
+    dashboard.innerHTML = '<div class="loading-spinner" style="margin: 20px auto;"></div>';
+
+    const promises = [loadWorldBankData(iso3Primary, false)];
+
+    // Add all comparison countries
+    comparisonCountries.forEach(countryName => {
+        const countryEntry = COUNTRY_LIST.find(c => c.name === countryName);
+        if (countryEntry) {
+            const iso3 = getIso3(countryEntry.code);
+            promises.push(loadWorldBankData(iso3, true));
+        }
+    });
+
+    const results = await Promise.all(promises);
+    const primaryData = results[0];
+    const compareResults = results.slice(1);
+
+    renderEconomicDashboard(primaryData, compareResults);
+}
+
+function renderEconomicDashboard(primaryData, compareResults = []) {
+    const dashboard = document.getElementById('economicDashboard');
+    dashboard.innerHTML = '';
+
+    const primaryMap = {};
+    primaryData?.forEach(item => {
+        if (item.indicator?.id) primaryMap[item.indicator.id] = item;
+    });
+
+    const comparisonMaps = compareResults.map(data => {
+        const map = {};
+        data?.forEach(item => {
+            if (item.indicator?.id) map[item.indicator.id] = item;
+        });
+        return map;
+    });
+
+    Object.entries(WB_INDICATORS).forEach(([id, config]) => {
+        const itemP = primaryMap[id];
+        const valP = itemP ? itemP.value : null;
+        const dateP = itemP ? itemP.date : '';
+
+        // Check if ANY country has data for this indicator
+        const hasData = valP !== null || comparisonMaps.some(map => map[id] && map[id].value !== null);
+
+        if (hasData) {
+            const card = document.createElement('div');
+            card.className = 'dashboard-card';
+            card.onclick = () => openIndicatorHistory(id);
+
+            let content = `
+                <div class="metric-header">
+                    <span class="metric-label">${config.label}</span>
+                    ${config.source === 'IMF' ? '<span class="source-badge imf">IMF</span>' : ''}
+                </div>
+            `;
+
+            if (comparisonCountries.length > 0) {
+                // Multi-Country Comparison
+                const compactConfig = { ...config, compact: true };
+                const numCountries = comparisonCountries.length + 1;
+
+                // Determine layout based on country count
+                const columns = numCountries > 3 ? 2 : numCountries;
+                content += `<div class="metric-comparison" style="grid-template-columns: repeat(${columns}, 1fr); gap: 12px 8px;">`;
+
+                // Gather all values for comparison logic
+                const entries = [
+                    { name: selectedCountry, value: valP, date: dateP, isPrimary: true }
+                ];
+                comparisonCountries.forEach((name, idx) => {
+                    const item = comparisonMaps[idx][id];
+                    entries.push({
+                        name: name,
+                        value: item ? item.value : null,
+                        date: item ? item.date : ''
+                    });
+                });
+
+                // Find Leader
+                let leaderIdx = -1;
+                if (config.better) {
+                    let bestVal = config.better === 'high' ? -Infinity : Infinity;
+                    entries.forEach((entry, idx) => {
+                        if (entry.value !== null) {
+                            if (config.better === 'high' && entry.value > bestVal) {
+                                bestVal = entry.value;
+                                leaderIdx = idx;
+                            } else if (config.better === 'low' && entry.value < bestVal) {
+                                bestVal = entry.value;
+                                leaderIdx = idx;
+                            }
+                        }
+                    });
+                }
+
+                entries.forEach((entry, idx) => {
+                    const iso3 = COUNTRY_LIST.find(c => c.name === entry.name || c.name.toLowerCase() === entry.name.toLowerCase())?.code || entry.name.substring(0, 3);
+                    const isoCode = COUNTRY_ISO3[iso3] || iso3;
+                    const formatted = formatValue(entry.value, compactConfig);
+                    const colorClass = getIndicatorColor(id, entry.value);
+                    const isLeader = idx === leaderIdx;
+
+                    const isForecast = entry.date && parseInt(entry.date) > new Date().getFullYear();
+
+                    content += `
+                        <div class="metric-column ${isLeader ? 'leader' : ''}" style="position: relative;">
+                            <span class="country-indicator">${isoCode}</span>
+                            <span class="metric-value ${colorClass}" style="font-size: 1rem;">${formatted}</span>
+                            <span class="metric-year">${entry.date} ${isForecast ? '<span class="forecast-badge">Forecast</span>' : ''}</span>
+                            ${isLeader ? '<span class="material-symbols-outlined leader-indicator">check_circle</span>' : ''}
+                        </div>
+                    `;
+                });
+
+                content += `</div>`;
+            } else {
+                // Single Country View
+                const formatted = formatValue(valP, config);
+                const colorClass = getIndicatorColor(id, valP);
+                const isForecast = dateP && parseInt(dateP) > new Date().getFullYear();
+                content += `
+                    <div class="metric-header-single">
+                        <span class="metric-year">${dateP} ${isForecast ? '<span class="forecast-badge">Forecast</span>' : ''}</span>
+                    </div>
+                    <div class="metric-value ${colorClass}">${formatted}</div>
+                `;
+            }
+
+            card.innerHTML = content;
+
+            // Add shimmer effect
+            card.classList.add('shimmer-entrance');
+            setTimeout(() => {
+                card.classList.remove('shimmer-entrance');
+            }, 3000);
+
+            dashboard.appendChild(card);
+        }
+    });
+
+    if (dashboard.children.length === 0) {
+        dashboard.innerHTML = '<p style="text-align: center; color: var(--md-sys-color-secondary); grid-column: 1/-1;">No recent economic data available</p>';
+    }
+}
+
+// ===== Indicator History Modal =====
+let currentChartData = null;
+
+async function openIndicatorHistory(indicatorId) {
+    const modal = document.getElementById('indicatorModal');
+    const chartContainer = document.getElementById('modalChartContainer');
+    const modalTitle = document.getElementById('modalTitle');
+    const config = indicatorMetadata[indicatorId] || WB_INDICATORS[indicatorId];
+
+    // Reset State
+    modal.classList.remove('hidden');
+    chartContainer.innerHTML = '<div class="loading-spinner" style="margin: 100px auto;"></div>';
+    modalTitle.textContent = `${config ? config.label : indicatorId} History (Last 30 Years)`;
+
+    // Get Primary ISO3
+    const primaryEntry = COUNTRY_LIST.find(c => c.name === selectedCountry || c.name.toLowerCase() === selectedCountry.toLowerCase());
+    const iso3Primary = primaryEntry ? getIso3(primaryEntry.code) : null;
+
+    if (!iso3Primary) return;
+
+    try {
+        const promises = [fetch(`${API_BASE}/api/economic-history/${iso3Primary}/${indicatorId}`).then(r => r.json())];
+
+        comparisonCountries.forEach(countryName => {
+            const countryEntry = COUNTRY_LIST.find(c => c.name === countryName);
+            if (countryEntry) {
+                const iso3 = getIso3(countryEntry.code);
+                promises.push(fetch(`${API_BASE}/api/economic-history/${iso3}/${indicatorId}`).then(r => r.json()));
+            }
+        });
+
+        const results = await Promise.all(promises);
+        const primaryHistory = results[0] ? results[0].reverse() : [];
+        const compareHistories = results.slice(1).map(r => r ? r.reverse() : null);
+
+        if (primaryHistory.length > 0) {
+            renderIndicatorChart(primaryHistory, compareHistories, config);
+        } else {
+            chartContainer.innerHTML = '<p style="text-align: center; color: var(--md-sys-color-secondary); padding-top: 100px;">No historical data available</p>';
+        }
+    } catch (error) {
+        console.error('History API error:', error);
+        chartContainer.innerHTML = '<p class="error-text">Failed to load historical data</p>';
+    }
+}
+
+function renderIndicatorChart(primaryData, compareHistories = [], config) {
+    const container = document.getElementById('modalChartContainer');
+    container.innerHTML = '';
+
+    if (primaryData.length < 2) {
+        container.innerHTML = '<p style="text-align: center; color: var(--md-sys-color-secondary); padding-top: 100px;">Not enough data for chart</p>';
+        return;
+    }
+
+    const margin = { top: 40, right: 30, bottom: 60, left: 60 };
+    const width = container.clientWidth;
+    const height = container.clientHeight;
+    const chartWidth = width - margin.left - margin.right;
+    const chartHeight = height - margin.top - margin.bottom;
+
+    // determine min/max across all datasets
+    const allValues = [...primaryData.map(d => d.value)];
+    compareHistories.forEach(data => {
+        if (data) allValues.push(...data.map(d => d.value));
+    });
+
+    const minVal = Math.min(...allValues);
+    const maxVal = Math.max(...allValues);
+    const dataRange = maxVal - minVal || 1;
+
+    // Add some padding to Y axis
+    const yMin = minVal - (dataRange * 0.15);
+    const yMax = maxVal + (dataRange * 0.15);
+    const yRange = yMax - yMin;
+
+    const colors = [
+        '#2d3436', // Deep Graphite for Primary
+        '#8b5cf6', // Purple
+        '#10b981', // Emerald
+        '#f59e0b', // Amber
+        '#ef4444'  // Red
+    ];
+
+    // SVG
+    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svg.setAttribute('class', 'chart-svg');
+    svg.setAttribute('viewBox', `0 0 ${width} ${height}`);
+
+    // Helper to generate points and path string
+    const getChartElements = (data) => {
+        let pathD = '';
+        const points = [];
+        data.forEach((item, index) => {
+            const x = margin.left + (index / (data.length - 1)) * chartWidth;
+            const y = margin.top + chartHeight - ((item.value - yMin) / yRange) * chartHeight;
+            points.push({ x, y, value: item.value, date: item.date });
+            if (index === 0) pathD += `M ${x} ${y}`;
+            else pathD += ` L ${x} ${y}`;
+        });
+        return { pathD, points };
+    };
+
+    const primaryElements = getChartElements(primaryData);
+    const comparisonElements = compareHistories.map(h => h ? getChartElements(h) : null);
+
+    // Draw Axis Lines
+    const axesGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+    const xAxis = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+    xAxis.setAttribute('x1', margin.left);
+    xAxis.setAttribute('y1', height - margin.bottom);
+    xAxis.setAttribute('x2', width - margin.right);
+    xAxis.setAttribute('y2', height - margin.bottom);
+    xAxis.setAttribute('class', 'chart-axis-line');
+    axesGroup.appendChild(xAxis);
+
+    const yAxis = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+    yAxis.setAttribute('x1', margin.left);
+    yAxis.setAttribute('y1', margin.top);
+    yAxis.setAttribute('x2', margin.left);
+    yAxis.setAttribute('y2', height - margin.bottom);
+    yAxis.setAttribute('class', 'chart-axis-line');
+    axesGroup.appendChild(yAxis);
+    svg.appendChild(axesGroup);
+
+    // Create Tooltip
+    let tooltip = document.getElementById('chartTooltip');
+    if (!tooltip) {
+        tooltip = document.createElement('div');
+        tooltip.id = 'chartTooltip';
+        tooltip.className = 'chart-tooltip hidden';
+        container.appendChild(tooltip);
+    }
+    tooltip.classList.add('hidden');
+
+    // Draw Lines
+    const primaryPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    primaryPath.setAttribute('d', primaryElements.pathD);
+    primaryPath.setAttribute('class', 'chart-line');
+    primaryPath.style.stroke = colors[0];
+    svg.appendChild(primaryPath);
+
+    comparisonElements.forEach((elements, idx) => {
+        if (elements) {
+            const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+            path.setAttribute('d', elements.pathD);
+            path.setAttribute('class', 'chart-line comparison');
+            path.style.stroke = colors[idx + 1];
+            svg.appendChild(path);
+        }
+    });
+
+    // Label Placement Data
+    const labelRequests = [];
+
+    // Render Points and Tooltips handler
+    const renderPointsGroup = (elements, isCompare = false, colorIndex = 0) => {
+        elements.points.forEach((point, i) => {
+            const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+            circle.setAttribute('cx', point.x);
+            circle.setAttribute('cy', point.y);
+            circle.setAttribute('r', 3);
+            circle.setAttribute('class', `chart-point ${isCompare ? 'comparison' : ''}`);
+
+            circle.addEventListener('mouseenter', () => {
+                const formattedVal = formatValue(point.value, config);
+                const country = isCompare ? comparisonCountries[colorIndex - 1] : selectedCountry;
+                tooltip.innerHTML = `<strong>${point.date}</strong><br/><span style="color: ${colors[colorIndex]}">●</span> ${country}: ${formattedVal}`;
+                tooltip.classList.remove('hidden');
+
+                let left = point.x - (tooltip.offsetWidth / 2);
+                let top = point.y - 45;
+                if (left < 0) left = 5;
+                if (left + tooltip.offsetWidth > width) left = width - tooltip.offsetWidth - 5;
+                tooltip.style.left = `${left}px`;
+                tooltip.style.top = `${top}px`;
+            });
+            circle.addEventListener('mouseleave', () => tooltip.classList.add('hidden'));
+            circle.style.fill = 'white';
+            circle.style.stroke = colors[colorIndex];
+            circle.style.strokeWidth = '2';
+            svg.appendChild(circle);
+
+            // Record label request for the last point
+            if (i === elements.points.length - 1) {
+                const country = isCompare ? comparisonCountries[colorIndex - 1] : selectedCountry;
+                const iso3 = COUNTRY_LIST.find(c => c.name === country || c.name.toLowerCase() === country.toLowerCase())?.code || country.substring(0, 3);
+                const isoCode = COUNTRY_ISO3[iso3] || iso3;
+
+                const formatted = formatValue(point.value, { ...config, compact: true });
+                labelRequests.push({
+                    x: point.x + 5,
+                    y: point.y,
+                    color: colors[colorIndex],
+                    text: `${isoCode}: ${formatted}`
+                });
+            }
+
+            // X axis labels (years)
+            if (i === 0 || i === elements.points.length - 1 || i === Math.floor(elements.points.length / 2)) {
+                const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                text.setAttribute('x', point.x);
+                text.setAttribute('y', height - margin.bottom + 20);
+                text.setAttribute('class', 'chart-axis-text');
+                text.textContent = point.date;
+                svg.appendChild(text);
+            }
+        });
+    };
+
+    renderPointsGroup(primaryElements, false, 0);
+    comparisonElements.forEach((elements, idx) => {
+        if (elements) renderPointsGroup(elements, true, idx + 1);
+    });
+
+    // Vertical Nudging for Labels
+    labelRequests.sort((a, b) => a.y - b.y);
+    const minHeightDiff = 20;
+    for (let i = 1; i < labelRequests.length; i++) {
+        const prev = labelRequests[i - 1];
+        const curr = labelRequests[i];
+        if (curr.y - prev.y < minHeightDiff) {
+            curr.y = prev.y + minHeightDiff;
+        }
+    }
+
+    // Now render the labels
+    labelRequests.forEach(req => {
+        const valLabel = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        valLabel.setAttribute('x', req.x);
+        valLabel.setAttribute('y', req.y + 4);
+        valLabel.setAttribute('text-anchor', 'start');
+        valLabel.setAttribute('class', 'chart-value-text');
+        valLabel.style.fill = req.color;
+        valLabel.textContent = req.text;
+        svg.appendChild(valLabel);
+    });
+
+
+    // Y axis labels (Min/Max)
+    const maxText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    maxText.setAttribute('x', margin.left - 8);
+    maxText.setAttribute('y', margin.top + 5);
+    maxText.setAttribute('text-anchor', 'end');
+    maxText.setAttribute('class', 'chart-axis-text');
+    maxText.textContent = formatValue(maxVal, { ...config, compact: true });
+    svg.appendChild(maxText);
+
+    const minText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    minText.setAttribute('x', margin.left - 8);
+    minText.setAttribute('y', height - margin.bottom - 5);
+    minText.setAttribute('text-anchor', 'end');
+    minText.setAttribute('class', 'chart-axis-text');
+    minText.textContent = formatValue(minVal, { ...config, compact: true });
+    svg.appendChild(minText);
+
+    container.appendChild(svg);
+
+    // Draw Legend
+    const legend = document.createElement('div');
+    legend.className = 'chart-legend';
+
+    let legendHtml = `
+        <div class="legend-item">
+            <span class="legend-line" style="background: ${colors[0]}"></span>
+            <span>${selectedCountry}</span>
+        </div>
+    `;
+
+    comparisonCountries.forEach((country, idx) => {
+        legendHtml += `
+            <div class="legend-item">
+                <span class="legend-line" style="background: ${colors[idx + 1]}"></span>
+                <span>${country}</span>
+            </div>
+        `;
+    });
+
+    legend.innerHTML = legendHtml;
+    container.appendChild(legend);
+}
+
+function closeModal() {
+    document.getElementById('indicatorModal').classList.add('hidden');
+}
+
+// Close on overlay click
+document.getElementById('indicatorModal').addEventListener('click', (e) => {
+    if (e.target === document.getElementById('indicatorModal')) {
+        closeModal();
+    }
+});
+
+// Close on Escape
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') closeModal();
+});
+
 async function loadCountryOverview() {
+    // Show containers immediately
+    const overviewEl = document.getElementById('countryOverview');
+    if (overviewEl) overviewEl.classList.remove('hidden');
+
+    // Reset comparison when selecting a new primary country
+    comparisonCountries = [];
+    renderComparisonChips();
+
+    // Start loading World Bank Data (Charts) in parallel
+    if (selectedCountry && selectedCountry !== 'Global') {
+        loadBenchmarkedData();
+    } else {
+        const dashboard = document.getElementById('economicDashboard');
+        if (dashboard) dashboard.classList.add('hidden');
+    }
+
     try {
         const response = await fetchAPI(`/api/country-overview?country=${encodeURIComponent(selectedCountry)}`);
         if (!response.ok) throw new Error('Failed to load country overview');
 
         const data = await response.json();
 
-        const overviewEl = document.getElementById('countryOverview');
-        overviewEl.classList.remove('hidden');
-
+        // 1. Handle Last Run Date & Date Picker
+        const lastUpdatedEl = document.getElementById('lastUpdatedDate');
         if (data.last_run_date) {
-            // Set date picker to the latest month
-            const latestDate = new Date(data.last_run_date);
-            const year = latestDate.getFullYear();
-            const month = String(latestDate.getMonth() + 1).padStart(2, '0');
-            const dateStr = `${year}-${month}-${String(latestDate.getDate()).padStart(2, '0')}`;
+            const latestDate = parseIsoDate(data.last_run_date);
+            if (latestDate && !isNaN(latestDate.getTime())) {
+                selectedDate = latestDate;
+                const year = latestDate.getFullYear();
+                const month = String(latestDate.getMonth() + 1).padStart(2, '0');
+                const datePicker = document.getElementById('datePicker');
+                if (datePicker) datePicker.value = `${year}-${month}`;
 
-            const datePicker = document.getElementById('datePicker');
-            datePicker.value = `${year}-${month}`;
-
-            selectedDate = latestDate; // Update global state
-
-            // Reuse the main loading logic which handles everything correctly
-            await loadCountryOverviewForDate(data.last_run_date);
-
+                // Update "Last updated" text
+                if (lastUpdatedEl) {
+                    const options = { year: 'numeric', month: 'short' };
+                    lastUpdatedEl.textContent = latestDate.toLocaleDateString('en-US', options);
+                }
+            }
         } else {
-            // No data yet - set date picker to current month and show empty state
-            const today = new Date();
-            const year = today.getFullYear();
-            const month = String(today.getMonth() + 1).padStart(2, '0');
+            selectedDate = new Date();
+            const year = selectedDate.getFullYear();
+            const month = String(selectedDate.getMonth() + 1).padStart(2, '0');
             const datePicker = document.getElementById('datePicker');
-            datePicker.value = `${year}-${month}`;
-
-            selectedDate = today;
-
-            // Trigger load with today's date to show the "No Data" placeholder
-            const dateStr = `${year}-${month}-${String(today.getDate()).padStart(2, '0')}`;
-            await loadCountryOverviewForDate(dateStr);
+            if (datePicker) datePicker.value = `${year}-${month}`;
+            if (lastUpdatedEl) lastUpdatedEl.textContent = 'No data yet';
         }
+
+        // 2. Handle Summary & Articles (Data already provided in overview!)
+        if (data.summary) {
+            displayCountrySummary(data.summary.summary_text, data.summary.generated_at);
+        } else {
+            // No summary provided, show placeholder
+            displayCountrySummary(null, null);
+        }
+
+        if (data.articles) {
+            displayCountryArticles(data.articles);
+        } else {
+            displayCountryArticles([]);
+        }
+
+        // Ensure everything is visible
+        updateSummaryVisibility();
+
     } catch (error) {
         console.error('Error loading country overview:', error);
 
-        // Fallback
-        const today = new Date();
-        const year = today.getFullYear();
-        const month = String(today.getMonth() + 1).padStart(2, '0');
-        document.getElementById('datePicker').value = `${year}-${month}`;
-        document.getElementById('countryOverview').classList.remove('hidden');
+        // Fallback: If overview fails, at least show empty state
+        if (overviewEl) overviewEl.classList.remove('hidden');
+        displayCountrySummary(null, null);
+        displayCountryArticles([]);
     }
 }
 
@@ -1392,34 +2154,53 @@ async function scrapeNews() {
     }
 }
 
-async function generateSummary() {
+async function generateSummary(e) {
     if (!selectedDate) {
         showToast('Please select a date first', 'warning');
         return;
     }
 
-    const btn = document.getElementById('regenerateSummaryBtn');
-    const originalContent = btn.innerHTML;
+    // Support multiple buttons as triggers
+    const triggerBtn = e ? e.currentTarget : null;
+    const defaultBtn = document.getElementById('regenerateSummaryBtn');
+    const btn = triggerBtn || defaultBtn;
+    const originalContent = btn ? btn.innerHTML : '';
 
-    // Set loading state
-    btn.disabled = true;
-    btn.innerHTML = '<span class="material-symbols-outlined spin">refresh</span> Generating...';
+    if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<span class="material-symbols-outlined spin">refresh</span> Generating...';
+    }
 
     try {
         const country = selectedCountry || 'Global';
         const dateStr = formatDate(selectedDate);
 
         // Show user feedback that this might take a moment
-        showToast(`Regenerating analysis for ${country}...`, 'info');
+        showToast(`Regenerating analysis...`, 'info');
 
         if (STATIC_MODE) {
             showToast('Generation is disabled in Static Mode', 'warning');
             throw new Error('Static Mode');
         }
 
-        const response = await fetchAPI(`${API_BASE}/api/summarize/${dateStr}?country=${encodeURIComponent(country)}`, {
-            method: 'POST'
-        });
+        let response;
+        if (comparisonCountries.length > 0) {
+            // Comparative Summary
+            const allCountries = [country, ...comparisonCountries];
+            response = await fetchAPI(`${API_BASE}/api/summarize-comparative`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    countries: allCountries,
+                    target_date: dateStr
+                })
+            });
+        } else {
+            // Single Country Summary
+            response = await fetchAPI(`${API_BASE}/api/summarize/${dateStr}?country=${encodeURIComponent(country)}`, {
+                method: 'POST'
+            });
+        }
 
         if (!response.ok) {
             throw new Error('Failed to regenerate summary');
@@ -1427,8 +2208,14 @@ async function generateSummary() {
 
         const data = await response.json();
 
-        // Reload data to show new summary
-        await loadCountryOverviewForDate(dateStr);
+        // If comparative, display directly. If single, load overview date.
+        if (comparisonCountries.length > 0) {
+            const comparativePlaceholder = document.getElementById('comparativeSummaryPlaceholder');
+            if (comparativePlaceholder) comparativePlaceholder.classList.add('hidden');
+            displayCountrySummary(data.summary_text, data.generated_at || new Date().toISOString());
+        } else {
+            await loadCountryOverviewForDate(dateStr);
+        }
         showToast('Analysis updated successfully!', 'success');
 
     } catch (error) {
@@ -1561,57 +2348,7 @@ function escapeHtml(unsafe) {
 
 // Regenerate summary for current selection
 // Regenerate summary for current selection
-async function regenerateSummary() {
-    if (!selectedDate) {
-        showToast('Please select a date first', 'warning');
-        return;
-    }
 
-    const btn = document.getElementById('regenerateSummaryBtn');
-    const originalContent = btn.innerHTML;
-
-    // Set loading state
-    btn.disabled = true;
-    btn.innerHTML = '<span class="material-symbols-outlined spin">refresh</span> Generating...';
-
-    try {
-        const country = selectedCountry || 'Global';
-        const dateStr = formatDate(selectedDate);
-
-        // Show user feedback that this might take a moment
-        showToast(`Regenerating analysis for ${country}...`, 'info');
-
-        if (STATIC_MODE) {
-            showToast('Generation is disabled in Static Mode', 'warning');
-            throw new Error('Static Mode');
-        }
-
-        const response = await fetchAPI(`${API_BASE}/api/summarize/${dateStr}?country=${encodeURIComponent(country)}`, {
-            method: 'POST'
-        });
-
-        if (!response.ok) {
-            throw new Error('Failed to regenerate summary');
-        }
-
-        const data = await response.json();
-
-        // Reload data to show new summary
-        await loadCountryOverviewForDate(dateStr);
-        showToast('Analysis updated successfully!', 'success');
-
-    } catch (error) {
-        console.error('Error generating summary:', error);
-        if (error.message !== 'Static Mode') {
-            showToast('Failed to generate summary. Please try again.', 'error');
-        }
-    } finally {
-        if (btn) {
-            btn.disabled = false;
-            btn.innerHTML = originalContent;
-        }
-    }
-}
 
 // ===== Data Handling & Static Mode Support =====
 // STATIC_MODE is auto-injected as true by generate_static_site.py
@@ -1732,3 +2469,15 @@ document.addEventListener('DOMContentLoaded', () => {
         cleanupUIForStaticMode();
     }
 });
+
+// Safe Date Parsing helper
+function parseIsoDate(isoStr) {
+    if (!isoStr) return null;
+    // Handle YYYY-MM-DD
+    const parts = isoStr.split('-');
+    if (parts.length >= 3) {
+        // Use local time constructor to avoid timezone shifts
+        return new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+    }
+    return new Date(isoStr);
+}

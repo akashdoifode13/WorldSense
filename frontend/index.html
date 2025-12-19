@@ -180,7 +180,24 @@
                             <span class="material-symbols-outlined">share</span>
                         </button>
                     </div>
+                    <div class="comparison-controls">
+                        <span class="comparison-label">Benchmark vs:</span>
+                        <div class="search-container compact">
+                            <input type="text" id="compareSearch" placeholder="Add country to benchmark..."
+                                class="search-input" autocomplete="off">
+                            <div id="compareSuggestions" class="search-suggestions hidden"></div>
+                        </div>
+                        <div id="comparisonChips" class="comparison-chips"></div>
+                        <button id="clearComparison" class="btn btn-icon hidden" title="Clear All Comparisons">
+                            <span class="material-symbols-outlined">close</span>
+                        </button>
+                    </div>
                     <span class="last-updated-label">Last updated: <span id="lastUpdatedDate">-</span></span>
+                </div>
+
+                <!-- Economic Dashboard -->
+                <div id="economicDashboard" class="dashboard-grid hidden">
+                    <!-- Cards will be populated dynamically -->
                 </div>
 
                 <!-- Country Overview: Summary and Signals -->
@@ -202,6 +219,22 @@
                             </div>
                         </div>
                         <div id="countrySummaryContent" class="summary-content markdown-content"></div>
+                    </div>
+
+                    <!-- Comparative Summary Placeholder (Shown when benchmarking multiple countries) -->
+                    <div id="comparativeSummaryPlaceholder" class="card hidden"
+                        style="text-align: center; padding: 40px 20px;">
+                        <span class="material-symbols-outlined"
+                            style="font-size: 48px; color: var(--md-sys-color-primary); margin-bottom: 16px;">compare_arrows</span>
+                        <h3 style="margin-bottom: 8px;">Comparative Analysis</h3>
+                        <p id="comparativeSummaryText"
+                            style="color: var(--md-sys-color-on-surface-variant); margin-bottom: 24px;">
+                            Generate a side-by-side economic analysis for the selected countries.
+                        </p>
+                        <button id="compareSummariesBtn" class="btn btn-primary">
+                            <span class="material-symbols-outlined">auto_awesome</span>
+                            Generate Comparative Summary
+                        </button>
                     </div>
 
                     <!-- Generate Summary Placeholder (Shown when no summary exists) -->
@@ -289,7 +322,26 @@
     <!-- Map Libraries (CDN) -->
     <script src="https://cdn.jsdelivr.net/npm/jsvectormap/dist/js/jsvectormap.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/jsvectormap/dist/maps/world.js"></script>
-    <!-- Main App Logic -->
+    <!-- Indicator History Modal -->
+    <div id="indicatorModal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title" id="modalTitle">Indicator History</h3>
+                <button class="modal-close" onclick="closeModal()">
+                    <span class="material-symbols-outlined">close</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div id="modalChartContainer" class="chart-container">
+                    <!-- SVG Chart will be injected here -->
+                </div>
+                <!-- Optional: Data Table -->
+                <!-- <div id="modalDataContainer" class="data-container"></div> -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
     <script src="./app.js?v=13"></script>
 </body>
 

@@ -93,11 +93,69 @@ Format the report in markdown with clear headers and subheaders. Be concise and 
             return summary
     
     def get_summary_by_date(self, db: Session, target_date: date, country: str = "Global") -> Optional[DailySummary]:
-        """Get summary for a specific date and country."""
-        return db.query(DailySummary).filter(
-            DailySummary.date == target_date,
-            DailySummary.country == country
-        ).first()
+        """Get summary for a specific date and country, or month if 1st is requested."""
+        if target_date.day == 1:
+            from sqlalchemy import extract
+            # Try 1st of month first (New Convention)
+            summary = db.query(DailySummary).filter(
+                DailySummary.date == target_date,
+                DailySummary.country == country
+            ).first()
+            
+            if not summary:
+                # Try any summary in that month (Old Convention) - get latest
+                summary = db.query(DailySummary).filter(
+                    extract('year', DailySummary.date) == target_date.year,
+                    extract('month', DailySummary.date) == target_date.month,
+                    DailySummary.country == country
+                ).order_by(DailySummary.date.desc()).first()
+            return summary
+        else:
+            return db.query(DailySummary).filter(
+                DailySummary.date == target_date,
+                DailySummary.country == country
+            ).first()
+
+    def generate_comparative_summary(self, db: Session, target_date: date, countries: list) -> Optional[str]:
+        """
+        Generate a comparative economic analysis for a group of countries.
+        """
+        # Get articles for all selected countries
+        all_articles = db.query(Article).filter(
+            Article.published_date == target_date,
+            Article.country.in_(countries)
+        ).all()
+        
+        if not all_articles:
+            print(f"⚠ No articles found for comparative summary on {target_date}")
+            return None
+            
+        # Format articles grouped by country
+        formatted_text = self._format_comparative_articles(all_articles)
+        
+        print(f"\n📊 Generating comparative summary for {', '.join(countries)} ({len(all_articles)} articles)...")
+        
+        # Generate using LLM
+        summary_text = self.llm_client.generate_comparative_summary(formatted_text, str(target_date), countries)
+        return summary_text
+
+    def _format_comparative_articles(self, articles: list) -> str:
+        """Format articles grouped by country for comparative analysis."""
+        grouped = {}
+        for article in articles:
+            if article.country not in grouped:
+                grouped[article.country] = []
+            grouped[article.country].append(article)
+            
+        formatted = []
+        for country, country_articles in grouped.items():
+            formatted.append(f"\n# Economic News: {country}")
+            for i, article in enumerate(country_articles, 1):
+                formatted.append(f"## {i}. {article.title}")
+                if article.description:
+                    formatted.append(f"Summary: {article.description}")
+        
+        return "\n".join(formatted)
     
     def _format_articles(self, articles: list) -> str:
         """Format articles into a structured text for the LLM."""

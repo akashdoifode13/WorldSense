@@ -322,10 +322,20 @@ class NewsScraper:
             return None
 
     def get_articles_by_date(self, db: Session, target_date: date, country: str = "Global") -> List[Article]:
-        return db.query(Article).filter(
-            Article.published_date == target_date,
-            Article.country == country
-        ).order_by(Article.category, Article.scraped_at).all()
+        if target_date.day == 1:
+            # Monthly view - get all articles for this month
+            from sqlalchemy import extract
+            return db.query(Article).filter(
+                extract('year', Article.published_date) == target_date.year,
+                extract('month', Article.published_date) == target_date.month,
+                Article.country == country
+            ).order_by(Article.category, Article.scraped_at).all()
+        else:
+            # Specific day view
+            return db.query(Article).filter(
+                Article.published_date == target_date,
+                Article.country == country
+            ).order_by(Article.category, Article.scraped_at).all()
 
     def get_available_dates(self, db: Session, country: str = "Global") -> List[date]:
         result = db.query(Article.published_date).filter(

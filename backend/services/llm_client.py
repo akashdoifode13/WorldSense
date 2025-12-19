@@ -183,6 +183,65 @@ Please provide a well-structured economic analysis summary following the guideli
         except Exception as e:
             print(f"⚠ Error calling LLM API: {e}")
             return None
+
+    def generate_comparative_summary(self, articles_data: str, date: str, countries: list) -> Optional[str]:
+        """
+        Generate a comparative economic summary for multiple countries.
+        """
+        countries_str = ", ".join(countries)
+        
+        prompt = f"""You are a senior global economic strategist. Your task is to provide a side-by-side comparative analysis of the economic landscape in {countries_str}.
+        
+        Today's date is {date}.
+        
+        Guidelines:
+        1. **Comparative Framework**: Do not just list summaries for each country. Instead, compare them across themes like "Monetary Policy Divergence", "Inflation Trends", "Global Trade Positioning", and "Growth Outlook".
+        2. **Relative Strengths**: Identify which countries are showing relative strength or weakness compared to the others in the group.
+        3. **Interconnections**: Discuss how economic shifts in one of these countries might impact the others (e.g., trade flows, currency pressure).
+        4. **Data Driven**: Reference specific developments from the news provided.
+        5. **Layout**: Use clear markdown headers and a structured approach that emphasizes comparison.
+        
+        Based on the following news data for {date}, generate a high-level comparative economic summary:
+        
+        {articles_data}
+        
+        Provide a sophisticated, professional comparative analysis."""
+
+        if self.provider == "gemini":
+            try:
+                self.rate_limiter.wait()
+                response = self.gemini_client.models.generate_content(
+                    model=self.gemini_model,
+                    contents=prompt,
+                )
+                return response.text
+            except Exception as e:
+                print(f"⚠ Error calling Gemini API: {e}")
+                return None
+        else:
+            # Local LLM fallback
+            try:
+                response = requests.post(
+                    self.api_url,
+                    json={
+                        "model": self.model,
+                        "messages": [
+                            {"role": "system", "content": "You are a senior global economic strategist specializing in cross-country benchmarking."},
+                            {"role": "user", "content": prompt}
+                        ],
+                        "temperature": self.temperature,
+                        "max_tokens": self.max_tokens,
+                        "stream": False
+                    },
+                    timeout=120
+                )
+                if response.status_code == 200:
+                    result = response.json()
+                    return result.get("choices", [{}])[0].get("message", {}).get("content", "")
+                return None
+            except Exception as e:
+                print(f"⚠ Error calling Local LLM: {e}")
+                return None
     
     def test_connection(self) -> bool:
         """Test if the LLM API is available."""

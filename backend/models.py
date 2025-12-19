@@ -51,3 +51,43 @@ class DailySummary(Base):
     
     def __repr__(self):
         return f"<DailySummary(date={self.date}, country='{self.country}', articles={self.article_count})>"
+
+
+class EconomicIndicator(Base):
+    """Model for storing World Bank economic indicators."""
+    __tablename__ = "economic_indicators"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    country_iso3 = Column(String(3), nullable=False, index=True)
+    indicator_code = Column(String(50), nullable=False, index=True)
+    date = Column(String(10), nullable=False)  # Year (e.g., "2024")
+    value = Column(Float, nullable=True)
+    scraped_at = Column(DateTime, default=datetime.utcnow)
+    
+    # Ensure unique constraint for upsert
+    __table_args__ = (
+        Index('idx_indicator_unique', 'country_iso3', 'indicator_code', 'date', unique=True),
+    )
+    
+    def __repr__(self):
+        return f"<EconomicIndicator(country='{self.country_iso3}', code='{self.indicator_code}', date='{self.date}', value={self.value})>"
+
+
+class IndicatorMetadata(Base):
+    """Model for storing metadata for economic indicators (labels, sources, units)."""
+    __tablename__ = "indicator_metadata"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    indicator_code = Column(String(50), nullable=False, unique=True, index=True)
+    label = Column(String(200), nullable=False)
+    description = Column(Text)
+    source = Column(String(500))
+    unit = Column(String(100))
+    dataset = Column(String(50))
+    # Year beyond which values are considered forecasts (e.g., 2025)
+    forecast_start_year = Column(Integer, nullable=True)
+    
+    scraped_at = Column(DateTime, default=datetime.utcnow)
+    
+    def __repr__(self):
+        return f"<IndicatorMetadata(code='{self.indicator_code}', label='{self.label}')>"

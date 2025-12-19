@@ -14,7 +14,7 @@ from backend.database import init_db, get_db
 from backend.services.news_scraper import NewsScraper
 from backend.services.summarizer import Summarizer
 from backend.services.sentiment_analyzer import analyze_sentiment, get_sentiment_color, get_sentiment_label
-from backend.models import Article, DailySummary
+from backend.models import Article, DailySummary, EconomicIndicator, IndicatorMetadata
 
 
 # Initialize FastAPI app
@@ -82,6 +82,11 @@ class ScrapeResponse(BaseModel):
 class ScrapeRequest(BaseModel):
     target_date: Optional[date] = None
     country: str = "Global"
+
+
+class ComparativeSummaryRequest(BaseModel):
+    countries: List[str]
+    target_date: date
 
 
 # API Routes
@@ -171,15 +176,7 @@ async def get_last_run_date(country: str = "Global", db: Session = Depends(get_d
     }
 
 
-@app.get("/api/articles/{date}", response_model=List[ArticleResponse])
-async def get_articles(date: date, country: str = "Global", db: Session = Depends(get_db)):
-    """Get all articles for a specific date and country."""
-    articles = scraper.get_articles_by_date(db, date, country)
-    
-    if not articles:
-        raise HTTPException(status_code=404, detail=f"No articles found for {date}")
-    
-    return articles
+
 
 
 
@@ -260,6 +257,23 @@ async def generate_summary(date: date, country: str = "Global", db: Session = De
             print(f"Error computing sentiment: {e}")
     
     return summary
+
+
+@app.post("/api/summarize-comparative")
+async def generate_comparative_summary(request: ComparativeSummaryRequest, db: Session = Depends(get_db)):
+    """Generate a comparative summary for multiple countries."""
+    try:
+        summary_text = summarizer.generate_comparative_summary(db, request.target_date, request.countries)
+        if not summary_text:
+            raise HTTPException(status_code=404, detail="No articles found for the selected countries and date.")
+            
+        return {
+            "date": request.target_date,
+            "countries": request.countries,
+            "summary_text": summary_text
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to generate comparative summary: {str(e)}")
 
 
 @app.post("/api/scrape-and-summarize")
@@ -475,6 +489,103 @@ async def export_sentiments(format: str = "csv", country: str = None, db: Sessio
         media_type="text/csv",
         headers={"Content-Disposition": f"attachment; filename={filename}"}
     )
+
+
+# ===== World Bank & IMF Data Endpoints =====
+from backend.services.worldbank_scraper import scrape_world_bank_data, WB_INDICATORS
+from backend.services.imf_scraper import scrape_imf_data
+from backend.models import EconomicIndicator
+from sqlalchemy import func
+
+@app.post("/api/scrape/worldbank")
+async def trigger_worldbank_scrape(background_tasks: BackgroundTasks):
+    """Trigger background scraping of World Bank data."""
+    background_tasks.add_task(scrape_world_bank_data)
+    return {"message": "World Bank data scraping started in background."}
+
+@app.post("/api/scrape/imf")
+async def trigger_imf_scrape(background_tasks: BackgroundTasks):
+    """Trigger background scraping of IMF data."""
+    background_tasks.add_task(scrape_imf_data)
+    return {"message": "IMF data scraping started in background."}
+
+
+@app.get("/api/indicators/metadata")
+async def get_indicators_metadata(db: Session = Depends(get_db)):
+    """Get metadata for all tracked indicators (World Bank & IMF)."""
+    # 1. Start with hardcoded WB indicators
+    metadata = {
+        code: {
+            "label": cfg["label"],
+            "unit": cfg.get("suffix", ""),
+            "source": "World Bank",
+            "better": cfg.get("better")
+        } for code, cfg in WB_INDICATORS.items()
+    }
+    
+    # 2. Add IMF indicators from Database
+    db_meta = db.query(IndicatorMetadata).all()
+    for meta in db_meta:
+        metadata[meta.indicator_code] = {
+            "label": meta.label,
+            "unit": meta.unit,
+            "source": meta.source,
+            "better": "high" if "growth" in meta.label.lower() else "low" if "unemployment" in meta.label.lower() or "inflation" in meta.label.lower() or "debt" in meta.label.lower() else None,
+            "forecast_start_year": meta.forecast_start_year
+        }
+        
+    return metadata
+
+@app.get("/api/economic-data/{iso3}")
+async def get_economic_data(iso3: str, db: Session = Depends(get_db)):
+    """Get latest economic indicators for a country."""
+    # Subquery to get max date per indicator for this country
+    subquery = db.query(
+        EconomicIndicator.indicator_code,
+        func.max(EconomicIndicator.date).label('max_date')
+    ).filter(
+        EconomicIndicator.country_iso3 == iso3
+    ).group_by(EconomicIndicator.indicator_code).subquery()
+    
+    # Join to get values
+    results = db.query(EconomicIndicator).join(
+        subquery,
+        (EconomicIndicator.indicator_code == subquery.c.indicator_code) &
+        (EconomicIndicator.date == subquery.c.max_date)
+    ).filter(
+        EconomicIndicator.country_iso3 == iso3
+    ).all()
+    
+    # Format response to match what frontend expects from WB API
+    # Frontend expects: [{indicator: {id: "..."}}, {value: ..., date: ...}]
+    # We will return list of objects that match rendering logic
+    formatted_data = []
+    for item in results:
+        formatted_data.append({
+            "indicator": {"id": item.indicator_code},
+            "countryiso3code": item.country_iso3,
+            "date": item.date,
+            "value": item.value
+        })
+        
+    return formatted_data
+
+@app.get("/api/economic-history/{iso3}/{indicator_code}")
+async def get_economic_history(iso3: str, indicator_code: str, db: Session = Depends(get_db)):
+    """Get historical data for an indicator (last 30 entries)."""
+    results = db.query(EconomicIndicator).filter(
+        EconomicIndicator.country_iso3 == iso3,
+        EconomicIndicator.indicator_code == indicator_code
+    ).order_by(EconomicIndicator.date.desc()).limit(30).all()
+    
+    # Format for frontend chart
+    return [
+        {
+            "date": item.date,
+            "value": item.value
+        }
+        for item in results
+    ]
 
 
 # Country URL routes - must be before static mount

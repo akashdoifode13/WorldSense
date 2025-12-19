@@ -43,19 +43,24 @@
     /* Very Light Gray */
 
     /* Status Colors */
-    --md-sys-color-error: #000000;
-    /* Black */
+    /* Status Colors */
+    --md-sys-color-error: #c62828;
+    /* Red 800 */
     --md-sys-color-on-error: #ffffff;
     /* White */
-    --md-sys-color-error-container: #f5f5f5;
-    /* Light Gray */
+    --md-sys-color-error-container: #ffcdd2;
+    /* Red 100 */
     --md-sys-color-on-error-container: #000000;
     /* Black */
 
-    --md-sys-color-success: #000000;
-    /* Black */
+    --md-sys-color-success: #2e7d32;
+    /* Green 800 */
     --md-sys-color-on-success: #ffffff;
     /* White */
+
+    /* Text Utilities for Status */
+    --md-sys-color-text-success: #2e7d32;
+    --md-sys-color-text-error: #c62828;
 
     --md-sys-color-tertiary: #757575;
     /* Gray */
@@ -462,7 +467,7 @@ body {
     gap: 8px;
     background: var(--md-sys-color-surface-container);
     border: var(--border-subtle);
-    border-radius: var(--md-sys-shape-corner-medium);
+    border-radius: 4px;
     padding: 6px 12px;
 }
 
@@ -841,6 +846,14 @@ body {
     display: none !important;
 }
 
+.text-success {
+    color: var(--md-sys-color-text-success) !important;
+}
+
+.text-error {
+    color: var(--md-sys-color-text-error) !important;
+}
+
 /* ===== Responsive ===== */
 @media (max-width: 1024px) {
     .app-container {
@@ -1162,7 +1175,7 @@ body {
     border: 1px solid var(--md-sys-color-outline-variant);
     color: var(--md-sys-color-on-surface);
     padding: 0.5rem 1rem 0.5rem 2.5rem;
-    border-radius: 24px;
+    border-radius: 4px;
     font-family: 'Inter', sans-serif;
     width: 200px;
     transition: all 0.2s;
@@ -1428,4 +1441,410 @@ body.dark-theme #world-map {
     .calendar-content-wrapper {
         grid-template-columns: 1fr;
     }
+}
+
+/* ===== Economic Dashboard ===== */
+.dashboard-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 16px;
+    margin-bottom: 24px;
+}
+
+.dashboard-card {
+    background: var(--md-sys-color-surface);
+    border: var(--border-subtle);
+    border-radius: var(--md-sys-shape-corner-medium);
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    transition: all 0.2s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.dashboard-card:hover {
+    box-shadow: var(--md-sys-elevation-level1);
+    border-color: var(--md-sys-color-outline);
+    transform: translateY(-2px);
+}
+
+.metric-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 8px;
+}
+
+.metric-label {
+    font: var(--md-sys-typescale-label-small);
+    color: var(--md-sys-color-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-weight: 600;
+    line-height: 1.4;
+}
+
+.source-badge {
+    font-size: 0.65rem;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
+.source-badge.imf {
+    background: rgba(59, 130, 246, 0.15);
+    color: #3b82f6;
+    border: 1px solid rgba(59, 130, 246, 0.3);
+}
+
+.forecast-badge {
+    font-size: 0.6rem;
+    padding: 1px 4px;
+    border-radius: 4px;
+    background: rgba(139, 92, 246, 0.15);
+    color: #8b5cf6;
+    border: 1px solid rgba(139, 92, 246, 0.3);
+    margin-left: 4px;
+    font-weight: 600;
+    text-transform: uppercase;
+    vertical-align: middle;
+}
+
+.metric-icon {
+    color: var(--md-sys-color-outline);
+    font-size: 20px;
+}
+
+.metric-value {
+    font: var(--md-sys-typescale-headline-medium);
+    color: var(--md-sys-color-on-surface);
+    font-weight: 600;
+    margin-bottom: 4px;
+}
+
+.metric-year {
+    font: var(--md-sys-typescale-body-small);
+    color: var(--md-sys-color-outline);
+    font-size: 11px;
+}
+
+/* ===== Modal Styles ===== */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(4px);
+    z-index: 1000;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease;
+}
+
+.modal-overlay:not(.hidden) {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.modal-content {
+    background: var(--md-sys-color-surface);
+    border-radius: var(--md-sys-shape-corner-extra-large);
+    width: 90%;
+    max-width: 600px;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: var(--md-sys-elevation-level3);
+    transform: scale(0.95);
+    transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+    position: relative;
+    border: var(--border-subtle);
+}
+
+.modal-overlay:not(.hidden) .modal-content {
+    transform: scale(1);
+}
+
+.modal-header {
+    padding: 24px;
+    border-bottom: var(--border-subtle);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.modal-title {
+    font: var(--md-sys-typescale-headline-small);
+    color: var(--md-sys-color-on-surface);
+    margin: 0;
+}
+
+.modal-close {
+    background: transparent;
+    border: none;
+    color: var(--md-sys-color-on-surface-variant);
+    cursor: pointer;
+    padding: 8px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.2s;
+}
+
+.modal-close:hover {
+    background: var(--md-sys-color-surface-container-high);
+}
+
+.modal-body {
+    padding: 24px;
+}
+
+/* ===== Chart Styles ===== */
+.chart-container {
+    min-height: 420px;
+    width: 100%;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+}
+
+.chart-svg {
+    width: calc(100% - 70px);
+    height: 350px;
+    overflow: visible;
+}
+
+.chart-line {
+    fill: none;
+    /* stroke: var(--md-sys-color-primary); REMOVED to allow JS dynamic color */
+    stroke-width: 2.5;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.chart-point {
+    fill: var(--md-sys-color-surface);
+    /* stroke: var(--md-sys-color-primary); REMOVED to allow JS dynamic color */
+    stroke-width: 2;
+    transition: r 0.2s;
+}
+
+.chart-point:hover {
+    r: 6;
+    fill: var(--md-sys-color-primary);
+}
+
+.chart-axis-line {
+    stroke: var(--md-sys-color-outline-variant);
+    stroke-width: 1;
+}
+
+.chart-axis-text {
+    fill: var(--md-sys-color-secondary);
+    font-size: 10px;
+    font-family: var(--md-sys-typescale-label-small-font);
+    text-anchor: middle;
+}
+
+.chart-value-text {
+    font-size: 11px;
+    font-weight: 700;
+}
+
+.chart-tooltip {
+    position: absolute;
+    background: var(--md-sys-color-inverse-surface);
+    color: var(--md-sys-color-inverse-on-surface);
+    padding: 6px 10px;
+    border-radius: 4px;
+    font-size: 12px;
+    pointer-events: none;
+    transform: translate(-50%, -100%);
+    margin-top: -10px;
+    white-space: nowrap;
+    z-index: 10;
+    box-shadow: var(--md-sys-elevation-level1);
+}
+
+.dashboard-card {
+    cursor: pointer;
+}
+
+/* ===== Benchmarking & Comparison ===== */
+.comparison-controls {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: var(--md-sys-color-surface-container-low);
+    padding: 6px 16px;
+    border-radius: 100px;
+}
+
+.comparison-label {
+    font: var(--md-sys-typescale-label-medium);
+    color: var(--md-sys-color-on-surface-variant);
+    white-space: nowrap;
+}
+
+.search-container.compact {
+    width: 200px;
+}
+
+.search-container.compact .search-input {
+    height: 32px;
+    font-size: 0.85rem;
+    padding: 0 12px;
+}
+
+.comparison-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin: 4px 0;
+}
+
+.chip {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--md-sys-color-secondary-container);
+    color: var(--md-sys-color-on-secondary-container);
+    padding: 2px 10px;
+    border-radius: 100px;
+    font: var(--md-sys-typescale-label-medium);
+    transition: all 0.2s ease;
+}
+
+.chip:hover {
+    background: var(--md-sys-color-secondary-container-hover);
+}
+
+.chip-remove {
+    font-size: 14px !important;
+    cursor: pointer;
+    opacity: 0.7;
+}
+
+.chip-remove:hover {
+    opacity: 1;
+}
+
+.metric-comparison {
+    display: grid;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+}
+
+.metric-column {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1px;
+    padding: 4px;
+    border-radius: var(--md-sys-shape-corner-small);
+    transition: all 0.2s ease;
+}
+
+.metric-column.leader {
+    background: var(--md-sys-color-primary-container);
+    outline: 1px solid var(--md-sys-color-primary);
+    opacity: 0.95;
+}
+
+.leader-indicator {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    color: var(--md-sys-color-primary);
+    font-size: 14px;
+    font-weight: bold;
+}
+
+.comparison-divider {
+    background: var(--md-sys-color-outline-variant);
+    height: 30px;
+}
+
+.country-indicator {
+    font: var(--md-sys-typescale-label-small);
+    color: var(--md-sys-color-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-size: 9px;
+    font-weight: 700;
+}
+
+.metric-comparison .metric-value {
+    font-size: 1.1rem;
+    margin-bottom: 2px;
+}
+
+.metric-comparison .metric-year {
+    font-size: 10px;
+}
+
+/* Legend for multi-line chart */
+.chart-legend {
+    display: flex;
+    justify-content: center;
+    gap: 24px;
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px solid var(--md-sys-color-outline-variant);
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font: var(--md-sys-typescale-label-medium);
+    color: var(--md-sys-color-on-surface);
+}
+
+.legend-line {
+    width: 20px;
+    height: 3px;
+    border-radius: 2px;
+}
+
+
+/* Shimmer Entrance Effect */
+@keyframes shimmerPulse {
+    0% {
+        transform: translateX(-150%) skewX(-15deg);
+    }
+
+    100% {
+        transform: translateX(150%) skewX(-15deg);
+    }
+}
+
+.shimmer-entrance {
+    position: relative;
+    overflow: hidden;
+}
+
+.shimmer-entrance::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(to right,
+            rgba(255, 255, 255, 0) 0%,
+            rgba(255, 255, 255, 0.4) 50%,
+            rgba(255, 255, 255, 0) 100%);
+    animation: shimmerPulse 1.5s infinite;
+    pointer-events: none;
+    z-index: 5;
 }
