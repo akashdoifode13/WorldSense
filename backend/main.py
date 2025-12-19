@@ -513,25 +513,38 @@ async def trigger_imf_scrape(background_tasks: BackgroundTasks):
 @app.get("/api/indicators/metadata")
 async def get_indicators_metadata(db: Session = Depends(get_db)):
     """Get metadata for all tracked indicators (World Bank & IMF)."""
-    # 1. Start with hardcoded WB indicators
-    metadata = {
-        code: {
-            "label": cfg["label"],
-            "unit": cfg.get("suffix", ""),
-            "source": "World Bank",
-            "better": cfg.get("better")
-        } for code, cfg in WB_INDICATORS.items()
+    # 1. Create WB indicator configs (WB_INDICATORS from scraper is just a list)
+    WB_CONFIGS = {
+        'NY.GDP.MKTP.CD': { 'label': 'GDP', 'unit': '', 'source': 'World Bank', 'better': 'high', 'format': 'currency', 'compact': True },
+        'NY.GDP.MKTP.KD.ZG': { 'label': 'GDP Growth', 'unit': '%', 'source': 'World Bank', 'better': 'high', 'format': 'percent' },
+        'NY.GDP.PCAP.CD': { 'label': 'GDP per Capita', 'unit': '', 'source': 'World Bank', 'better': 'high', 'format': 'currency', 'compact': True },
+        'FP.CPI.TOTL.ZG': { 'label': 'Inflation', 'unit': '%', 'source': 'World Bank', 'better': 'low', 'format': 'percent' },
+        'SL.UEM.TOTL.ZS': { 'label': 'Unemployment', 'unit': '%', 'source': 'World Bank', 'better': 'low', 'format': 'percent' },
+        'BN.CAB.XOKA.GD.ZS': { 'label': 'Current Account', 'unit': '% of GDP', 'source': 'World Bank', 'better': 'high', 'format': 'percent' },
+        'NE.EXP.GNFS.ZS': { 'label': 'Exports', 'unit': '% of GDP', 'source': 'World Bank', 'better': 'high', 'format': 'percent' },
+        'NE.IMP.GNFS.ZS': { 'label': 'Imports', 'unit': '% of GDP', 'source': 'World Bank', 'better': 'low', 'format': 'percent' },
+        'BX.KLT.DINV.WD.GD.ZS': { 'label': 'FDI Inflows', 'unit': '% of GDP', 'source': 'World Bank', 'better': 'high', 'format': 'percent' },
+        'FI.RES.TOTL.CD': { 'label': 'Reserves', 'unit': '', 'source': 'World Bank', 'better': 'high', 'format': 'currency', 'compact': True },
+        'GC.DOD.TOTL.GD.ZS': { 'label': 'Gov Debt', 'unit': '% of GDP', 'source': 'World Bank', 'better': 'low', 'format': 'percent' },
+        'NY.GNS.ICTR.ZS': { 'label': 'Gross Savings', 'unit': '% of GDP', 'source': 'World Bank', 'better': 'high', 'format': 'percent' },
+        'NE.GDI.TOTL.ZS': { 'label': 'Capital Formation', 'unit': '% of GDP', 'source': 'World Bank', 'better': 'high', 'format': 'percent' },
     }
+    
+    metadata = {**WB_CONFIGS}
     
     # 2. Add IMF indicators from Database
     db_meta = db.query(IndicatorMetadata).all()
     for meta in db_meta:
+        # Infer format from unit
+        format_type = 'percent' if meta.unit and '%' in meta.unit else 'number'
+        
         metadata[meta.indicator_code] = {
             "label": meta.label,
-            "unit": meta.unit,
-            "source": meta.source,
-            "better": "high" if "growth" in meta.label.lower() else "low" if "unemployment" in meta.label.lower() or "inflation" in meta.label.lower() or "debt" in meta.label.lower() else None,
-            "forecast_start_year": meta.forecast_start_year
+            "unit": meta.unit or "",
+            "source": meta.source or "IMF",
+            "better": "high" if "growth" in meta.label.lower() else "low" if any(x in meta.label.lower() for x in ["unemployment", "inflation", "debt"]) else None,
+            "forecast_start_year": meta.forecast_start_year,
+            "format": format_type
         }
         
     return metadata
@@ -556,11 +569,39 @@ async def get_economic_data(iso3: str, db: Session = Depends(get_db)):
         EconomicIndicator.country_iso3 == iso3
     ).all()
     
-    # Format response to match what frontend expects from WB API
-    # Frontend expects: [{indicator: {id: "..."}}, {value: ..., date: ...}]
-    # We will return list of objects that match rendering logic
-    formatted_data = []
+    # For IMF indicators, replace with most recent non-forecast data if needed
+    final_results = []
     for item in results:
+        if item.indicator_code.startswith('IMF.'):
+            # Get metadata to check forecast threshold
+            metadata = db.query(IndicatorMetadata).filter(
+                IndicatorMetadata.indicator_code == item.indicator_code
+            ).first()
+            
+            if metadata and metadata.forecast_start_year:
+                try:
+                    year = int(item.date)
+                    # If this is forecast data, find the most recent actual data
+                    if year > metadata.forecast_start_year:
+                        # Query for most recent non-forecast data
+                        actual_data = db.query(EconomicIndicator).filter(
+                            EconomicIndicator.country_iso3 == iso3,
+                            EconomicIndicator.indicator_code == item.indicator_code,
+                            EconomicIndicator.date <= str(metadata.forecast_start_year)
+                        ).order_by(EconomicIndicator.date.desc()).first()
+                        
+                        if actual_data:
+                            item = actual_data
+                        else:
+                            continue  # Skip if no actual data exists
+                except (ValueError, TypeError):
+                    pass
+        
+        final_results.append(item)
+    
+    # Format response to match what frontend expects
+    formatted_data = []
+    for item in final_results:
         formatted_data.append({
             "indicator": {"id": item.indicator_code},
             "countryiso3code": item.country_iso3,
@@ -572,11 +613,32 @@ async def get_economic_data(iso3: str, db: Session = Depends(get_db)):
 
 @app.get("/api/economic-history/{iso3}/{indicator_code}")
 async def get_economic_history(iso3: str, indicator_code: str, db: Session = Depends(get_db)):
-    """Get historical data for an indicator (last 30 entries)."""
+    """Get historical data for an indicator (last 30 entries, excluding forecasts for IMF)."""
     results = db.query(EconomicIndicator).filter(
         EconomicIndicator.country_iso3 == iso3,
         EconomicIndicator.indicator_code == indicator_code
     ).order_by(EconomicIndicator.date.desc()).limit(30).all()
+    
+    # Filter out forecast data for IMF indicators
+    filtered_results = []
+    if indicator_code.startswith('IMF.'):
+        # Get metadata to check forecast threshold
+        metadata = db.query(IndicatorMetadata).filter(
+            IndicatorMetadata.indicator_code == indicator_code
+        ).first()
+        
+        if metadata and metadata.forecast_start_year:
+            for item in results:
+                try:
+                    year = int(item.date)
+                    if year <= metadata.forecast_start_year:
+                        filtered_results.append(item)
+                except (ValueError, TypeError):
+                    filtered_results.append(item)
+        else:
+            filtered_results = results
+    else:
+        filtered_results = results
     
     # Format for frontend chart
     return [
@@ -584,7 +646,7 @@ async def get_economic_history(iso3: str, indicator_code: str, db: Session = Dep
             "date": item.date,
             "value": item.value
         }
-        for item in results
+        for item in filtered_results
     ]
 
 

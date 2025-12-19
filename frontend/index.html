@@ -195,6 +195,22 @@
                     <span class="last-updated-label">Last updated: <span id="lastUpdatedDate">-</span></span>
                 </div>
 
+                <!-- Indicator Search Bar -->
+                <div class="indicator-search-container" style="margin: 20px 0;">
+                    <div class="search-container">
+                        <span class="material-symbols-outlined"
+                            style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--md-sys-color-secondary);">search</span>
+                        <input type="text" id="indicatorSearch" placeholder="Search indicators..." class="search-input"
+                            style="padding-left: 40px;" autocomplete="off">
+                        <button id="clearIndicatorSearch" class="btn btn-icon-small hidden"
+                            style="position: absolute; right: 8px; top: 50%; transform: translateY(-50%);">
+                            <span class="material-symbols-outlined">close</span>
+                        </button>
+                    </div>
+                    <div id="indicatorSearchResults" class="search-results-info hidden"
+                        style="margin-top: 8px; font-size: 0.9rem; color: var(--md-sys-color-secondary);"></div>
+                </div>
+
                 <!-- Economic Dashboard -->
                 <div id="economicDashboard" class="dashboard-grid hidden">
                     <!-- Cards will be populated dynamically -->

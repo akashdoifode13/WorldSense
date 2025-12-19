@@ -1470,6 +1470,17 @@ body.dark-theme #world-map {
     transform: translateY(-2px);
 }
 
+.dashboard-card.explore-card {
+    background: linear-gradient(135deg, var(--md-sys-color-primary-container) 0%, var(--md-sys-color-secondary-container) 100%);
+    border: 2px dashed var(--md-sys-color-primary);
+    cursor: pointer;
+}
+
+.dashboard-card.explore-card:hover {
+    transform: translateY(-4px) scale(1.02);
+    box-shadow: var(--md-sys-elevation-level2);
+}
+
 .metric-header {
     display: flex;
     justify-content: space-between;
@@ -1498,6 +1509,12 @@ body.dark-theme #world-map {
     background: rgba(59, 130, 246, 0.15);
     color: #3b82f6;
     border: 1px solid rgba(59, 130, 246, 0.3);
+}
+
+.source-badge.wb {
+    background: rgba(16, 185, 129, 0.15);
+    color: #10b981;
+    border: 1px solid rgba(16, 185, 129, 0.3);
 }
 
 .forecast-badge {

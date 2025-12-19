@@ -11,6 +11,8 @@ let map = null;
 let comparisonCountries = []; // Array of country names for benchmarking
 let chartTooltip = null;
 let indicatorMetadata = {}; // Dynamic indicator metadata from backend
+let showAllIndicators = false; // Toggle for showing all indicators vs top 10
+let indicatorSearchQuery = ''; // Current search query for indicators
 
 // ===== API Configuration =====
 const API_BASE = window.location.origin;
@@ -106,6 +108,22 @@ function setupEventListeners() {
             comparisonCountries = [];
             compareSearch.value = '';
             renderComparisonChips();
+            loadBenchmarkedData();
+        });
+    }
+
+    // Indicator search
+    const indicatorSearch = document.getElementById('indicatorSearch');
+    const clearIndicatorSearch = document.getElementById('clearIndicatorSearch');
+    if (indicatorSearch) {
+        indicatorSearch.addEventListener('input', handleIndicatorSearch);
+    }
+    if (clearIndicatorSearch) {
+        clearIndicatorSearch.addEventListener('click', () => {
+            indicatorSearch.value = '';
+            indicatorSearchQuery = '';
+            clearIndicatorSearch.classList.add('hidden');
+            document.getElementById('indicatorSearchResults').classList.add('hidden');
             loadBenchmarkedData();
         });
     }
@@ -821,6 +839,7 @@ async function initMap() {
 async function selectCountry(countryName, code) {
     console.log('Selecting country:', countryName, code);
     selectedCountry = countryName;
+    showAllIndicators = false; // Reset indicator expansion when changing countries
     document.getElementById('selectedCountryName').textContent = countryName;
 
     // Update browser URL
@@ -962,7 +981,7 @@ const COUNTRY_LIST = [
     { name: 'Lebanon', code: 'LB' },
     { name: 'Lesotho', code: 'LS' },
     { name: 'Liberia', code: 'LR' },
-    { name: 'Libya', code: 'LY' },
+    { name: 'Libya', code: 'LBY' },
     { name: 'Liechtenstein', code: 'LI' },
     { name: 'Lithuania', code: 'LT' },
     { name: 'Luxembourg', code: 'LU' },
@@ -975,7 +994,7 @@ const COUNTRY_LIST = [
     { name: 'Marshall Islands', code: 'MH' },
     { name: 'Mauritania', code: 'MR' },
     { name: 'Mauritius', code: 'MU' },
-    { name: 'Mexico', code: 'MX' },
+    { name: 'Mexico', code: 'MEX' },
     { name: 'Micronesia', code: 'FM' },
     { name: 'Moldova', code: 'MD' },
     { name: 'Monaco', code: 'MC' },
@@ -1018,7 +1037,7 @@ const COUNTRY_LIST = [
     { name: 'Sao Tome and Principe', code: 'ST' },
     { name: 'Saudi Arabia', code: 'SA' },
     { name: 'Senegal', code: 'SN' },
-    { name: 'Serbia', code: 'RS' },
+    { name: 'Serbia', code: 'SRB' },
     { name: 'Seychelles', code: 'SC' },
     { name: 'Sierra Leone', code: 'SL' },
     { name: 'Singapore', code: 'SG' },
@@ -1038,30 +1057,30 @@ const COUNTRY_LIST = [
     { name: 'Syria', code: 'SY' },
     { name: 'Taiwan', code: 'TW' },
     { name: 'Tajikistan', code: 'TJ' },
-    { name: 'Tanzania', code: 'TZ' },
-    { name: 'Thailand', code: 'TH' },
+    { name: 'Tanzania', code: 'TZA' },
+    { name: 'Thailand', code: 'THA' },
     { name: 'Timor-Leste', code: 'TL' },
-    { name: 'Togo', code: 'TG' },
-    { name: 'Tonga', code: 'TO' },
-    { name: 'Trinidad and Tobago', code: 'TT' },
-    { name: 'Tunisia', code: 'TN' },
-    { name: 'Turkey', code: 'TR' },
-    { name: 'Turkmenistan', code: 'TM' },
-    { name: 'Tuvalu', code: 'TV' },
-    { name: 'Uganda', code: 'UG' },
-    { name: 'Ukraine', code: 'UA' },
-    { name: 'United Arab Emirates', code: 'AE' },
-    { name: 'United Kingdom', code: 'GB' },
-    { name: 'United States', code: 'US' },
-    { name: 'Uruguay', code: 'UY' },
-    { name: 'Uzbekistan', code: 'UZ' },
-    { name: 'Vanuatu', code: 'VU' },
-    { name: 'Vatican City', code: 'VA' },
-    { name: 'Venezuela', code: 'VE' },
-    { name: 'Vietnam', code: 'VN' },
-    { name: 'Yemen', code: 'YE' },
-    { name: 'Zambia', code: 'ZM' },
-    { name: 'Zimbabwe', code: 'ZW' }
+    { name: 'Togo', code: 'TGO' },
+    { name: 'Tonga', code: 'TON' },
+    { name: 'Trinidad and Tobago', code: 'TTO' },
+    { name: 'Tunisia', code: 'TUN' },
+    { name: 'Turkey', code: 'TUR' },
+    { name: 'Turkmenistan', code: 'TKM' },
+    { name: 'Tuvalu', code: 'TUV' },
+    { name: 'Uganda', code: 'UGA' },
+    { name: 'Ukraine', code: 'UKR' },
+    { name: 'United Arab Emirates', code: 'ARE' },
+    { name: 'United Kingdom', code: 'GBR' },
+    { name: 'United States', code: 'USA' },
+    { name: 'Uruguay', code: 'URY' },
+    { name: 'Uzbekistan', code: 'UZB' },
+    { name: 'Vanuatu', code: 'VUT' },
+    { name: 'Vatican City', code: 'VAT' },
+    { name: 'Venezuela', code: 'VEN' },
+    { name: 'Vietnam', code: 'VNM' },
+    { name: 'Yemen', code: 'YEM' },
+    { name: 'Zambia', code: 'ZMB' },
+    { name: 'Zimbabwe', code: 'ZWE' }
 ];
 
 // ... (inside initializeApp)
@@ -1223,6 +1242,21 @@ document.addEventListener('click', (e) => {
     }
 });
 
+function handleIndicatorSearch(e) {
+    const query = e.target.value.trim();
+    indicatorSearchQuery = query;
+
+    const clearBtn = document.getElementById('clearIndicatorSearch');
+    if (query) {
+        clearBtn?.classList.remove('hidden');
+    } else {
+        clearBtn?.classList.add('hidden');
+    }
+
+    // Reload dashboard with search filter
+    loadBenchmarkedData();
+}
+
 // ===== Calendar Functions =====
 // renderCalendar and changeYear removed as grid is removed.
 
@@ -1331,6 +1365,23 @@ const WB_INDICATORS = {
     'IMF.BCA_NGDPD': { label: 'Current Account (IMF)', format: 'percent', suffix: ' of GDP', better: 'high', source: 'IMF' },
     'IMF.GGXWDG_NGDP': { label: 'Gross Debt (IMF)', format: 'percent', suffix: ' of GDP', better: 'low', source: 'IMF' }
 };
+
+// Load dynamic indicator metadata from backend
+async function loadIndicatorMetadata() {
+    try {
+        const response = await fetch(`${API_BASE}/api/indicators/metadata`);
+        if (response.ok) {
+            indicatorMetadata = await response.json();
+            console.log('Loaded metadata for', Object.keys(indicatorMetadata).length, 'indicators');
+        } else {
+            console.warn('Failed to load indicator metadata, using fallback');
+            indicatorMetadata = { ...WB_INDICATORS };
+        }
+    } catch (error) {
+        console.error('Error loading indicator metadata:', error);
+        indicatorMetadata = { ...WB_INDICATORS };
+    }
+}
 
 // Map ISO2 to ISO3 codes
 const COUNTRY_ISO3 = {
@@ -1486,7 +1537,100 @@ function renderEconomicDashboard(primaryData, compareResults = []) {
         return map;
     });
 
-    Object.entries(WB_INDICATORS).forEach(([id, config]) => {
+    // Use dynamic metadata from backend (fallback to WB_INDICATORS if not loaded)
+    const allIndicators = Object.keys(indicatorMetadata).length > 0 ? indicatorMetadata : WB_INDICATORS;
+
+    // Sort indicators by data recency (most recent first), then alphabetically
+    const sortedIds = Object.keys(allIndicators).sort((a, b) => {
+        const aData = primaryMap[a];
+        const bData = primaryMap[b];
+
+        // Get years for comparison
+        const aYear = aData && aData.date ? parseInt(aData.date) : 0;
+        const bYear = bData && bData.date ? parseInt(bData.date) : 0;
+
+        // Sort by year descending (most recent first)
+        if (aYear !== bYear) {
+            return bYear - aYear;
+        }
+
+        // If same year or no data, sort alphabetically by label
+        return allIndicators[a].label.localeCompare(allIndicators[b].label);
+    });
+
+    // Apply search filter with token-based matching and scoring
+    let filteredIds = sortedIds;
+    if (indicatorSearchQuery) {
+        const query = indicatorSearchQuery.toLowerCase().trim();
+        const tokens = query.split(/\s+/); // Split by whitespace
+
+        // Score each indicator based on match quality
+        const scoredResults = sortedIds.map(id => {
+            const config = allIndicators[id];
+            const label = config.label.toLowerCase();
+            const unit = (config.unit || '').toLowerCase();
+            const idLower = id.toLowerCase();
+
+            let score = 0;
+            let matchedTokens = 0;
+
+            // Check if all tokens are present
+            const allTokensMatch = tokens.every(token => {
+                if (label.includes(token) || unit.includes(token) || idLower.includes(token)) {
+                    matchedTokens++;
+                    return true;
+                }
+                return false;
+            });
+
+            if (!allTokensMatch) return null; // Skip if not all tokens match
+
+            // Scoring system (higher is better)
+            // 1000 points: Exact label match
+            if (label === query) score += 1000;
+
+            // 500 points: Label starts with query
+            if (label.startsWith(query)) score += 500;
+
+            // 300 points: Label contains exact query phrase
+            if (label.includes(query)) score += 300;
+
+            // 100 points per token that matches in label (vs unit or id)
+            tokens.forEach(token => {
+                if (label.includes(token)) score += 100;
+            });
+
+            // 50 points: All tokens match in label
+            if (tokens.every(token => label.includes(token))) score += 50;
+
+            // 20 points per matched token
+            score += matchedTokens * 20;
+
+            // 10 points: Unit match
+            if (unit.includes(query)) score += 10;
+
+            return { id, score };
+        }).filter(result => result !== null);
+
+        // Sort by score (descending) and extract IDs
+        filteredIds = scoredResults
+            .sort((a, b) => b.score - a.score)
+            .map(result => result.id);
+
+        // Show search results info
+        const resultsInfo = document.getElementById('indicatorSearchResults');
+        if (resultsInfo) {
+            resultsInfo.textContent = `Found ${filteredIds.length} indicator${filteredIds.length !== 1 ? 's' : ''}`;
+            resultsInfo.classList.remove('hidden');
+        }
+    } else {
+        document.getElementById('indicatorSearchResults')?.classList.add('hidden');
+    }
+
+    // Apply limit: show only 9 by default unless expanded or searching
+    const displayIds = (showAllIndicators || indicatorSearchQuery) ? filteredIds : filteredIds.slice(0, 9);
+    displayIds.forEach(id => {
+        const config = allIndicators[id];
         const itemP = primaryMap[id];
         const valP = itemP ? itemP.value : null;
         const dateP = itemP ? itemP.date : '';
@@ -1499,10 +1643,20 @@ function renderEconomicDashboard(primaryData, compareResults = []) {
             card.className = 'dashboard-card';
             card.onclick = () => openIndicatorHistory(id);
 
+            // Determine source badge
+            const isImf = id.startsWith('IMF.') || (config.source && config.source.includes('IMF'));
+            const isWB = config.source && config.source.includes('World Bank');
+
             let content = `
                 <div class="metric-header">
-                    <span class="metric-label">${config.label}</span>
-                    ${config.source === 'IMF' ? '<span class="source-badge imf">IMF</span>' : ''}
+                    <div>
+                        <span class="metric-label">${config.label}</span>
+                        ${config.unit ? `<div class="metric-unit">${config.unit}</div>` : ''}
+                    </div>
+                    <div style="display: flex; gap: 4px;">
+                        ${isWB ? '<span class="source-badge wb">WB</span>' : ''}
+                        ${isImf ? '<span class="source-badge imf">IMF</span>' : ''}
+                    </div>
                 </div>
             `;
 
@@ -1552,7 +1706,9 @@ function renderEconomicDashboard(primaryData, compareResults = []) {
                     const colorClass = getIndicatorColor(id, entry.value);
                     const isLeader = idx === leaderIdx;
 
-                    const isForecast = entry.date && parseInt(entry.date) > new Date().getFullYear();
+                    // Use forecast_start_year from metadata if available
+                    const forecastThreshold = config.forecast_start_year || new Date().getFullYear();
+                    const isForecast = entry.date && parseInt(entry.date) > forecastThreshold;
 
                     content += `
                         <div class="metric-column ${isLeader ? 'leader' : ''}" style="position: relative;">
@@ -1569,7 +1725,9 @@ function renderEconomicDashboard(primaryData, compareResults = []) {
                 // Single Country View
                 const formatted = formatValue(valP, config);
                 const colorClass = getIndicatorColor(id, valP);
-                const isForecast = dateP && parseInt(dateP) > new Date().getFullYear();
+                const forecastThreshold = config.forecast_start_year || new Date().getFullYear();
+                const isForecast = dateP && parseInt(dateP) > forecastThreshold;
+
                 content += `
                     <div class="metric-header-single">
                         <span class="metric-year">${dateP} ${isForecast ? '<span class="forecast-badge">Forecast</span>' : ''}</span>
@@ -1590,6 +1748,24 @@ function renderEconomicDashboard(primaryData, compareResults = []) {
         }
     });
 
+    // Add "Explore All Indicators" button if there are more than 9 and not searching
+    if (!showAllIndicators && !indicatorSearchQuery && filteredIds.length > 9) {
+        const exploreBtn = document.createElement('div');
+        exploreBtn.className = 'dashboard-card explore-card';
+        exploreBtn.innerHTML = `
+            <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; gap: 8px;">
+                <span class="material-symbols-outlined" style="font-size: 48px; color: var(--md-sys-color-primary);">insights</span>
+                <span style="font-weight: 600; color: var(--md-sys-color-on-surface);">Explore All Indicators</span>
+                <span style="font-size: 0.85rem; color: var(--md-sys-color-secondary);">${filteredIds.length - 9} more available</span>
+            </div>
+        `;
+        exploreBtn.onclick = () => {
+            showAllIndicators = true;
+            loadBenchmarkedData(); // Reload to show all
+        };
+        dashboard.appendChild(exploreBtn);
+    }
+
     if (dashboard.children.length === 0) {
         dashboard.innerHTML = '<p style="text-align: center; color: var(--md-sys-color-secondary); grid-column: 1/-1;">No recent economic data available</p>';
     }
@@ -1602,12 +1778,19 @@ async function openIndicatorHistory(indicatorId) {
     const modal = document.getElementById('indicatorModal');
     const chartContainer = document.getElementById('modalChartContainer');
     const modalTitle = document.getElementById('modalTitle');
-    const config = indicatorMetadata[indicatorId] || WB_INDICATORS[indicatorId];
 
-    // Reset State
+    // Use dynamic metadata from backend (fallback to WB_INDICATORS if not loaded)
+    const allIndicators = Object.keys(indicatorMetadata).length > 0 ? indicatorMetadata : WB_INDICATORS;
+    const config = allIndicators[indicatorId] || { label: indicatorId };
+
+    // Set title with unit if available
+    let titleText = `${config.label} History (Last 30 Years)`;
+    if (config.unit) {
+        titleText = `${config.label}\n${config.unit}`;
+    }
+    modalTitle.textContent = titleText;
     modal.classList.remove('hidden');
     chartContainer.innerHTML = '<div class="loading-spinner" style="margin: 100px auto;"></div>';
-    modalTitle.textContent = `${config ? config.label : indicatorId} History (Last 30 Years)`;
 
     // Get Primary ISO3
     const primaryEntry = COUNTRY_LIST.find(c => c.name === selectedCountry || c.name.toLowerCase() === selectedCountry.toLowerCase());
@@ -1698,9 +1881,6 @@ function renderIndicatorChart(primaryData, compareHistories = [], config) {
         return { pathD, points };
     };
 
-    const primaryElements = getChartElements(primaryData);
-    const comparisonElements = compareHistories.map(h => h ? getChartElements(h) : null);
-
     // Draw Axis Lines
     const axesGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
     const xAxis = document.createElementNS('http://www.w3.org/2000/svg', 'line');
@@ -1730,21 +1910,62 @@ function renderIndicatorChart(primaryData, compareHistories = [], config) {
     }
     tooltip.classList.add('hidden');
 
-    // Draw Lines
+    // Get forecast threshold from config
+    const forecastYear = config.forecast_start_year || new Date().getFullYear();
+
+    // Add shaded forecast region
+    const firstYear = parseInt(primaryData[0].date);
+    const lastYear = parseInt(primaryData[primaryData.length - 1].date);
+
+    if (lastYear > forecastYear) {
+        // Calculate x position for forecast threshold
+        const forecastIndex = primaryData.findIndex(d => parseInt(d.date) > forecastYear);
+        if (forecastIndex > 0) {
+            const forecastStartX = margin.left + (forecastIndex / (primaryData.length - 1)) * chartWidth;
+            const forecastRect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+            forecastRect.setAttribute('x', forecastStartX);
+            forecastRect.setAttribute('y', margin.top);
+            forecastRect.setAttribute('width', (width - margin.right) - forecastStartX);
+            forecastRect.setAttribute('height', chartHeight);
+            forecastRect.setAttribute('fill', 'rgba(147, 51, 234, 0.05)'); // Light purple tint
+            forecastRect.setAttribute('stroke', 'rgba(147, 51, 234, 0.2)');
+            forecastRect.setAttribute('stroke-width', '1');
+            forecastRect.setAttribute('stroke-dasharray', '3,3');
+            svg.appendChild(forecastRect);
+
+            // Add "FORECAST" label
+            const forecastLabel = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+            forecastLabel.setAttribute('x', forecastStartX + 10);
+            forecastLabel.setAttribute('y', margin.top + 20);
+            forecastLabel.setAttribute('class', 'chart-forecast-label');
+            forecastLabel.style.fontSize = '11px';
+            forecastLabel.style.fill = 'rgba(147, 51, 234, 0.6)';
+            forecastLabel.style.fontWeight = '600';
+            forecastLabel.textContent = 'FORECAST';
+            svg.appendChild(forecastLabel);
+        }
+    }
+
+    // Draw Lines (solid lines for all data - no dashing)
+    const primaryElements = getChartElements(primaryData);
     const primaryPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
     primaryPath.setAttribute('d', primaryElements.pathD);
     primaryPath.setAttribute('class', 'chart-line');
     primaryPath.style.stroke = colors[0];
     svg.appendChild(primaryPath);
 
-    comparisonElements.forEach((elements, idx) => {
-        if (elements) {
-            const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-            path.setAttribute('d', elements.pathD);
-            path.setAttribute('class', 'chart-line comparison');
-            path.style.stroke = colors[idx + 1];
-            svg.appendChild(path);
-        }
+    // Draw comparison lines
+    const comparisonElements = compareHistories.map((history, idx) => {
+        if (!history || history.length < 2) return null;
+
+        const elements = getChartElements(history);
+        const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        path.setAttribute('d', elements.pathD);
+        path.setAttribute('class', 'chart-line comparison');
+        path.style.stroke = colors[idx + 1];
+        svg.appendChild(path);
+
+        return elements;
     });
 
     // Label Placement Data
